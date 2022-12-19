@@ -19,9 +19,19 @@ def set_joint_torques(sim, torques, norm=True):
         torques /= torques.max()
         
     # neural_input = 0.05 + 0.95 * (neural_input - neural_input.min()) / (neural_input.max() - neural_input.min())
+    print(len(sim.get_robot(0).links))
+    print()
     for link, _torques in zip(sim.get_robot(0).links, torques):
         link.joint_torque = _torques
+        
+    sim.update_motors(0)
 
+
+def get_joint_torques(sim):
+    torques = []
+    for link in sim.get_robot(0).links:
+        torques.append(link.joint_torque)
+    return torques
 
 def stack_tensor_dict_list(tensor_dict_list):
     """

@@ -29,7 +29,7 @@ class SimEnvWrapper:
             self.task.add_noise(self.env, (self.task.interval * self.seed + k) % (2 ** 32))
             self.env.step()
             
-            r += self.task.get_objective_fn()(self.env, neural_input)
+            r += self.task.get_objective_fn()(self.env) # , neural_input)
         
         if self.real_step:
             self.env.save_state_to_file("tmp.bullet")
