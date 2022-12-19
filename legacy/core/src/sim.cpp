@@ -7,6 +7,7 @@
 #include <robot_design/types.h>
 #include <robot_design/utils.h>
 #include <stdexcept>
+#include <iostream>
 
 namespace robot_design {
 
@@ -174,6 +175,47 @@ Index BulletSimulation::addRobot(std::shared_ptr<const Robot> robot, const Vecto
     }
 
     return robot_wrappers_.size() - 1;
+}
+
+void BulletSimulation::updateMotors(Index robot_idx) {
+    
+    BulletRobotWrapper wrapper = robot_wrappers_[robot_idx];
+    
+    // Robot &robot = wrapper->robot_;
+    // vector<btMultiBodyJointMotor>>
+
+    // wrapper.motors_.reserve(wrapper.multi_body_->getNumDofs());
+
+    // for (std::size_t i = 0; i < wrapper.motors_.size(); ++i) {
+    //     auto motor = wrapper.motors_.at(i);
+    //     world_->removeMultiBodyConstraint(motor.get());
+
+    //     Scalar max_torque = wrapper.robot_->links_[i].joint_torque_;
+    //     motor = std::make_shared<btMultiBodyJointMotor>(wrapper.multi_body_.get(), i - 1, dof_idx, 0.0, max_torque * time_step_);
+
+    //     world_->addMultiBodyConstraint(motor.get());
+    // }
+
+    std::cout << wrapper.motors_.size() << "\n";
+    int motor_index = 0;
+
+    for (std::size_t i = 1; i < wrapper.robot_->links_.size(); ++i) {
+        // The first non-base link in Bullet has index 0
+        const btMultibodyLink &link = wrapper.multi_body_->getLink(i - 1);
+        for (int dof_idx = 0; dof_idx < link.m_dofCount; ++dof_idx) {
+            Scalar max_torque = wrapper.robot_->links_[i].joint_torque_;
+
+            auto motor = wrapper.motors_.at(motor_index);
+            world_->removeMultiBodyConstraint(motor.get());
+
+            wrapper.motors_.at(motor_index) = std::make_shared<btMultiBodyJointMotor>(wrapper.multi_body_.get(), i - 1, dof_idx, 0.0, max_torque * time_step_);
+            motor = wrapper.motors_.at(motor_index);
+            world_->addMultiBodyConstraint(motor.get());
+            
+            std::cout << max_torque << " " << motor_index << " \n";
+            motor_index++;
+        }
+    }
 }
 
 Index BulletSimulation::addProp(std::shared_ptr<const Prop> prop, const Vector3 &pos, const Quaternion &rot) {
@@ -443,8 +485,7 @@ void BulletSimulation::getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower, Re
     for (int link_idx = 0; link_idx < multi_body.getNumLinks(); ++link_idx) {
         const btMultibodyLink &link = multi_body.getLink(link_idx);
         if (link.m_collider) {
-            link.m_collider->getCollisionShape()->getAabb(link.m_cachedWorldTransform,
-                                                                                                        link_lower, link_upper);
+            link.m_collider->getCollisionShape()->getAabb(link.m_cachedWorldTransform, link_lower, link_upper);
             lower = lower.cwiseMin(eigenVector3FromBullet(link_lower));
             upper = upper.cwiseMax(eigenVector3FromBullet(link_upper));
         }
