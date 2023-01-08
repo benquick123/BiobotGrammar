@@ -48,19 +48,6 @@ if __name__ == "__main__":
     # initialize rendering
     viewer, tracker = prepare_viewer(main_env)
     
-    # print(dir(robot))
-    # print()
-    # print(dir(main_env))
-    # exit()
-    
-    # torques = np.ones(dof_count)
-    # main_env.get_joint_motor_torques(0, torques)
-    # print(torques)
-    # main_env.add_joint_torques(0, np.ones(dof_count) * 10)
-    # main_env.get_joint_motor_torques(0, torques)
-    # print(torques)
-    
-    # set_joint_torques(main_env, np.ones(dof_count) * 0, norm=False)
     
     if OPTIMIZE:
         optimizer = MPPI(env, HORIZON, n_samples, 
@@ -86,6 +73,7 @@ if __name__ == "__main__":
     if SAVE_ACTION_SEQUENCE:
         action_sequence = []
     
+    current_torques = 0
     try:
         prev_time = time()
         step = 0
@@ -107,9 +95,6 @@ if __name__ == "__main__":
                     assert len(actions) == dof_count
                 except:
                     actions = np.zeros(dof_count)
-                
-            # main_env.get_joint_motor_torques(0, torques)
-            # print(get_joint_torques(main_env))    
             
             if SAVE_ACTION_SEQUENCE:
                 action_sequence.append(actions)
@@ -128,6 +113,10 @@ if __name__ == "__main__":
             sleep((1 / 15 - sleep_time + 0.01) if sleep_time < 1 / 15 else 0.01)
             prev_time = curr_time
             step += 1
+            
+            if step % 30 == 0:
+                main_env.update_torques(0, np.ones(dof_count) * current_torques)
+                current_torques = 1 - current_torques
     
     except KeyboardInterrupt:
         pass

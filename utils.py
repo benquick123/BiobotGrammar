@@ -33,6 +33,7 @@ def get_joint_torques(sim):
         torques.append(link.joint_torque)
     return torques
 
+
 def stack_tensor_dict_list(tensor_dict_list):
     """
     Stack a list of dictionaries of {tensors or dictionary of tensors}.

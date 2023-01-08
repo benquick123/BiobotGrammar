@@ -9,7 +9,7 @@ namespace rd = robot_design;
 void initSim(py::module &m) {
   py::class_<rd::Simulation, std::shared_ptr<rd::Simulation>>(m, "Simulation")
       .def("add_robot", &rd::Simulation::addRobot)
-      .def("update_motors", &rd::Simulation::updateMotors)
+      .def("update_torques", &rd::Simulation::updateTorques)
       .def("add_prop", &rd::Simulation::addProp)
       .def("remove_robot", &rd::Simulation::removeRobot)
       .def("remove_prop", &rd::Simulation::removeProp)

@@ -46,7 +46,7 @@ class SimEnvWrapper:
     def set_env_state(self):
         self.env.restore_state()
     
-    def real_env_step(self, boolean):
-        self.real_step = boolean
-        if not boolean:
+    def real_env_step(self, is_real):
+        self.real_step = is_real
+        if not is_real:
             self.env.save_state()

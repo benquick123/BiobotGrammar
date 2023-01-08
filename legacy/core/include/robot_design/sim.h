@@ -20,7 +20,7 @@ public:
   virtual ~Simulation() {}
   virtual Index addRobot(std::shared_ptr<const Robot> robot, const Vector3 &pos,
                          const Quaternion &rot) = 0;
-  virtual void updateMotors(Index robot_idx) = 0;
+  virtual void updateTorques(Index robot_idx, const Ref<const VectorX> &torques) = 0;
   virtual Index addProp(std::shared_ptr<const Prop> prop, const Vector3 &pos,
                         const Quaternion &rot) = 0;
   virtual void removeRobot(Index robot_idx) = 0;
@@ -114,7 +114,7 @@ public:
   BulletSimulation &operator=(const BulletSimulation &other) = delete;
   virtual Index addRobot(std::shared_ptr<const Robot> robot, const Vector3 &pos,
                          const Quaternion &rot) override;
-  virtual void updateMotors(Index robot_idx) override;
+  virtual void updateTorques(Index robot_idx, const Ref<const VectorX> &torques) override;
   virtual Index addProp(std::shared_ptr<const Prop> prop, const Vector3 &pos,
                         const Quaternion &rot) override;
   virtual void removeRobot(Index robot_idx) override;
