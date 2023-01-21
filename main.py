@@ -73,7 +73,6 @@ if __name__ == "__main__":
     if SAVE_ACTION_SEQUENCE:
         action_sequence = []
     
-    current_torques = 0
     try:
         prev_time = time()
         step = 0
@@ -113,10 +112,6 @@ if __name__ == "__main__":
             sleep((1 / 15 - sleep_time + 0.01) if sleep_time < 1 / 15 else 0.01)
             prev_time = curr_time
             step += 1
-            
-            if step % 30 == 0:
-                main_env.update_torques(0, np.ones(dof_count) * current_torques)
-                current_torques = 1 - current_torques
     
     except KeyboardInterrupt:
         pass
