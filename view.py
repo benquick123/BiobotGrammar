@@ -51,8 +51,7 @@ def prepare_viewer(sim):
 
 def viewer_step(sim, task, actions, viewer, tracker, step=0, torques=None):
     if torques is not None:
-        pass
-        # TODO: replace with new function
+        sim.update_torques(0, torques)
     
     for i in range(task.interval):
         step_idx = step * task.interval + i

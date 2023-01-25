@@ -72,8 +72,10 @@ if __name__ == "__main__":
     if SAVE_ACTION_SEQUENCE:
         action_sequence = []
     
-    current_torques = 0
-    # main_env.update_torques(0, np.ones(dof_count) * 2)
+    current_torques = np.ones(dof_count)
+    
+    sim_joint_positions = np.zeros(dof_count)
+    
     try:
         prev_time = time()
         step = 0
@@ -101,27 +103,22 @@ if __name__ == "__main__":
                 
             if viewer is not None:
                 actions_t = apply_action_clipping_sim(actions)
-                viewer_step(main_env, task, actions_t, viewer, tracker) # , torques=np.zeros_like(actions)) # np.random.rand(*actions.shape))
+                viewer_step(main_env, task, actions_t, viewer, tracker, step=step, torques=current_torques)
+                main_env.get_joint_positions(0, sim_joint_positions)
             
             if controller is not None:
-                actions_t = convert_joint_angles(actions)
+                actions_t = sim_joint_positions if viewer is not None else actions
+                actions_t = convert_joint_angles(actions_t)
                 controller.move(actions_t)
             
             curr_time = time()
-            
-            # lower = np.zeros(3)
-            # upper = np.zeros(3)
-            # main_env.get_robot_world_aabb(0, lower, upper)
-            # print(np.round(lower, 2), np.round(upper, 2))
-            
             sleep_time = curr_time - prev_time
-            print("step =", step, "\ttime =", np.round(sleep_time, 4), "\tactions =", np.round(actions, 2))
+            print("step =", step, "\ttime =", np.round(sleep_time, 4), "\tactions =", np.round(actions, 2), "\tsim_positions =", np.round(sim_joint_positions, 2))
             sleep((1 / 15 - sleep_time + 0.01) if sleep_time < 1 / 15 else 0.01)
             prev_time = curr_time
             step += 1
             
             # if step % 50 == 0:
-            #     main_env.update_torques(0, np.ones(dof_count) * current_torques)
             #     current_torques = 1 - current_torques
     
     except KeyboardInterrupt:
