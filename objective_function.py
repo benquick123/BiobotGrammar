@@ -46,32 +46,30 @@ class DotProductObjective:
         
         # reward related to the link facing in a specific direction:
         # I think this can also be used in the variable rotation scenario
-        base_dir = base_transform[:3, :1]
+        # base_dir = base_transform[:3, :1]
         
         # base_dir[1] = 0
         # reward += np.linalg.norm(base_dir) * np.sum(self.base_dir_weight)
         # reward += base_dir.T.dot(self.base_dir_weight)
         
         # reward related to having the base link as high as possible:
-        base_up = base_transform[:3, 1:2]
-        reward += base_up.T.dot(self.base_up_weight)
+        # base_up = base_transform[:3, -1:]
+        # reward += base_up.T.dot(self.base_up_weight)
         
         # reward related to the velocity of the base link (in a specific direction):
         base_vel = np.zeros(6, dtype=np.float64)
         sim.get_link_velocity(robot_idx, 0, base_vel)
+        # print(base_vel[-3:])
         
         if self.mean_velocity is None:
             self.mean_velocity = np.array(base_vel)
         else:
-            tau = 0.99
+            tau = 0.95
             self.mean_velocity = tau * self.mean_velocity + (1 - tau) * base_vel
             
-            
-        # base_vel[-2] = 0
-        # reward += np.linalg.norm(base_vel[-3:]) * np.sum(self.base_vel_weight)
         mean_base_vel = self.mean_velocity[-3:]
-        base_vel_weight = 1 * mean_base_vel / np.linalg.norm(mean_base_vel)
-        base_vel_weight[0] = 1
+        mean_base_vel[1] = 0
+        base_vel_weight = mean_base_vel / np.linalg.norm(mean_base_vel)
         # base_vel_weight = np.where(mean_base_vel < 0, base_vel_weight * -1, base_vel_weight)
         
         if print_bool:
@@ -91,5 +89,8 @@ class DotProductObjective:
         # punishment for not using all the neural inputs:
         if neural_input is not None and dof_count < len(neural_input):
             reward -= self.dof_mismatch_cost * np.sum(neural_input[dof_count:])
+            
+        # punishment for going off the platform (lower[1] is the position in up-down dir)
+        reward -= np.exp(-lower[1])
                 
         return reward.reshape(-1)[0]

@@ -3,7 +3,7 @@ import multiprocessing as mp
 import numpy as np
 
 from env import SimEnvWrapper
-from utils import get_make_sim_and_task_fn_without_args, stack_tensor_dict_list
+from utils import get_make_sim_and_task_fn_without_args, stack_tensor_dict_list, apply_action_clipping_sim
 
 
 def do_env_rollout(env, act_list, neural_input=None):
@@ -41,7 +41,7 @@ def do_env_rollout(env, act_list, neural_input=None):
     return paths
 
 
-def generate_perturbed_actions(base_act, filter_coefs, neural_input=None, history=None, idx=0):
+def generate_perturbed_actions(base_act, filter_coefs, history=None, idx=0):
     """
     Generate perturbed actions around a base action sequence
     """
@@ -66,16 +66,9 @@ def generate_perturbed_actions(base_act, filter_coefs, neural_input=None, histor
     for i in range(0, eps.shape[0] - betas.shape[0]):
         eps[i] = np.sum(eps[i:i+betas.shape[0]] * betas, axis=0)
         
-    if neural_input is not None:
-        # compute relative changes in position
-        relative_position_delta = base_act - np.concatenate((np.expand_dims(history[-1], axis=0), base_act[:-1]), axis=0)
-        # multiply by neural input 
-        # print(relative_position_delta.shape, base_act.shape, neural_input.shape)
-        relative_position_delta *= neural_input[:base_act.shape[0], :base_act.shape[1]]
-        # construct base_act back
-        base_act = history[-1] + np.cumsum(relative_position_delta, axis=0)
-    
     base_act += eps[:-betas.shape[0]]
+    # TODO: limit the joint angles
+    base_act = apply_action_clipping_sim(base_act)
     return base_act
 
 
@@ -96,7 +89,7 @@ def generate_paths(args):
     env.set_seed(base_seed)
     
     for idx in range(N):
-        act = generate_perturbed_actions(base_act, filter_coefs, neural_input=None, history=history, idx=idx)
+        act = generate_perturbed_actions(base_act, filter_coefs, history=history, idx=idx)
         act_list.append(act)
         
     paths = do_env_rollout(env, act_list, neural_input=neural_input)

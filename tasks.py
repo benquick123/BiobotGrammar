@@ -19,9 +19,9 @@ class ForwardSpeedTask(ABC):
 
         self.objective_fn = DotProductObjective()
         # for custom objective function
-        self.objective_fn.base_dir_weight = np.array([-2.0, 0.0, 0.0])
-        self.objective_fn.base_up_weight = np.array([0.0, 2.0, 0.0])
-        self.objective_fn.base_vel_weight = np.array([2.0, 0.0, 0.0])
+        self.objective_fn.base_dir_weight = np.array([0.0, 0.0, 0.0])
+        self.objective_fn.base_up_weight = np.array([0.0, 1.0, 0.0])
+        self.objective_fn.base_vel_weight = np.array([2.0, 2.0, 2.0])
         self.objective_fn.power_weight = 0
         self.objective_fn.dof_mismatch_cost = 0.1
         # for original objective function
@@ -52,7 +52,7 @@ class FlatTerrainTask(ForwardSpeedTask):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [40.0, 1.0, 10.0])
+        self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [2.0, 1.0, 2.0])
 
     def add_terrain(self, sim):
         sim.add_prop(self.floor, [0.0, -1.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))

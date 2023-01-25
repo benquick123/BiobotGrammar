@@ -2,7 +2,6 @@ import numpy as np
 
 import pyrobotdesign as rd
 import time
-from utils import set_joint_torques
 
 
 class CameraTracker(object):
@@ -52,7 +51,8 @@ def prepare_viewer(sim):
 
 def viewer_step(sim, task, actions, viewer, tracker, step=0, torques=None):
     if torques is not None:
-        set_joint_torques(sim, torques, norm=True)
+        pass
+        # TODO: replace with new function
     
     for i in range(task.interval):
         step_idx = step * task.interval + i

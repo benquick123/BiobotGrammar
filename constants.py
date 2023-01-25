@@ -10,5 +10,5 @@ HORIZON = 40
 NUM_THREADS = mp.cpu_count() - 1
 SEED = np.random.randint(10000000)
 SAVE_ACTION_SEQUENCE = False
-OPTIMIZE = False
-INPUT_ACTION_SEQUENCE = "output/nice.npy"
+OPTIMIZE = True
+INPUT_ACTION_SEQUENCE = None # "output/nice.npy"

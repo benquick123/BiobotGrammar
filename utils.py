@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pyrobotdesign as rd
 
@@ -5,14 +7,45 @@ from tasks import FlatTerrainTask
 from constants import *
 
 
+JOINT_BASELINES_ANGLES_292 = np.pi * np.array([0, 0, 0, 0, -60, -120, 0, 0, 120, -60, 0]) / 180
+MOTOR_CONFIG = json.load(open("config/292_motors.json", "r"))
+MIN_LIMITS = np.array([MOTOR_CONFIG["min_limits"][str(limit)] for limit in sorted(map(int, MOTOR_CONFIG["min_limits"].keys()))] + [0])
+MAX_LIMITS = np.array([MOTOR_CONFIG["max_limits"][str(limit)] for limit in sorted(map(int, MOTOR_CONFIG["max_limits"].keys()))] + [2 ** 12])
+
 
 def convert_joint_angles(action, joint_baseline_angles=None):
     if joint_baseline_angles is None:
-        joint_baseline_angles = np.pi * np.array([0, 0, 0, 0, -60, 120, 0, 0, 120, -60, 0]) / 180
+        joint_baseline_angles = JOINT_BASELINES_ANGLES_292
     assert len(action) == len(joint_baseline_angles)
     return action + joint_baseline_angles
 
 
+def apply_action_clipping_sim(action):
+    joint_baseline_angles = np.pi * np.array([0, 0, 0, 0, -60, -120, 0, 0, 120, -60, 0]) / 180
+    # receives action in radians
+    action = np.array(action)
+    # do the transform into real-world radians
+    action -= joint_baseline_angles
+    
+    # do the transform into real-world steps
+    action += np.pi
+    action *= 2 ** 12
+    action /= 2 * np.pi
+
+    # clip the actions
+    action = np.clip(action, MIN_LIMITS, MAX_LIMITS)
+    
+    # convert back to radians
+    action *= 2 * np.pi
+    action /= 4096
+    action -= np.pi
+    
+    # subtract baseline
+    action += joint_baseline_angles
+    return action
+
+
+"""
 def set_joint_torques(sim, torques, norm=True):
     if norm:
         torques /= np.linalg.norm(torques, ord=1)
@@ -32,6 +65,7 @@ def get_joint_torques(sim):
     for link in sim.get_robot(0).links:
         torques.append(link.joint_torque)
     return torques
+"""
 
 
 def stack_tensor_dict_list(tensor_dict_list):

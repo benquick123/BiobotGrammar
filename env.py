@@ -1,7 +1,5 @@
 import numpy as np
 
-from utils import set_joint_torques
-
 
 class SimEnvWrapper:
     
@@ -17,12 +15,14 @@ class SimEnvWrapper:
         self.action_dim = self.env.get_robot_dof_count(0)
         self.seed = None
         self.real_step = False    
+        # self.env.update_torques(0, np.ones(self.action_dim) * 2)
     
     def step(self, action, neural_input=None):
         r = 0
         
         if neural_input is not None:
-            set_joint_torques(self.env, torques=neural_input)
+            pass
+            # TODO: replace with new function
         
         for k in range(self.task.interval):
             self.env.set_joint_targets(0, action.reshape(-1, 1))
