@@ -7,7 +7,7 @@ from tasks import FlatTerrainTask
 from constants import *
 
 
-JOINT_BASELINES_ANGLES_292 = np.pi * np.array([0, 0, 0, 0, -60, -120, 0, 0, 120, -60, 0]) / 180
+JOINT_BASELINES_ANGLES_292 = np.pi * np.array([0, 0, 0, 0, 60, 120, 0, 0, -120, 60, 0]) / 180
 MOTOR_CONFIG = json.load(open("configs/292_motors.json", "r"))
 MIN_LIMITS = np.array([MOTOR_CONFIG["min_limits"][str(limit)] for limit in sorted(map(int, MOTOR_CONFIG["min_limits"].keys()))] + [0])
 MAX_LIMITS = np.array([MOTOR_CONFIG["max_limits"][str(limit)] for limit in sorted(map(int, MOTOR_CONFIG["max_limits"].keys()))] + [2 ** 12])
@@ -25,7 +25,7 @@ def apply_action_clipping_sim(action, return_over_limit=False):
     # receives action in radians
     action = np.array(action)
     # do the transform into real-world radians
-    action -= joint_baseline_angles
+    action += joint_baseline_angles
     
     # do the transform into real-world steps
     action += np.pi
@@ -42,7 +42,7 @@ def apply_action_clipping_sim(action, return_over_limit=False):
     action_clipped -= np.pi
     
     # subtract baseline
-    action_clipped += joint_baseline_angles
+    action_clipped -= joint_baseline_angles
     if return_over_limit:
         return action_clipped, over_limits
     else:

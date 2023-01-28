@@ -45,7 +45,7 @@ if __name__ == "__main__":
     # initialize neuron stream
     neuron_stream = None # NeuronStream(channels=CHANNELS, dt=DT)
     # initialize rendering
-    viewer, tracker = None, None # prepare_viewer(main_env)
+    viewer, tracker = prepare_viewer(main_env)
     
     
     if OPTIMIZE:
@@ -105,10 +105,9 @@ if __name__ == "__main__":
                 actions_t = apply_action_clipping_sim(actions)
                 viewer_step(main_env, task, actions_t, viewer, tracker, step=step, torques=current_torques)
                 main_env.get_joint_positions(0, sim_joint_positions)
-                sim_joint_positions *= -1
-                # sim_joint_positions_t = apply_action_clipping_sim(sim_joint_positions)
-                # if np.any(sim_joint_positions_t != sim_joint_positions):
-                #     print(np.sum(sim_joint_positions_t != sim_joint_positions))
+
+                _, over_limits = apply_action_clipping_sim(sim_joint_positions, return_over_limit=True)
+                current_torques[over_limits] = 1
             
             if controller is not None:
                 actions_t = sim_joint_positions if viewer is not None else actions
@@ -122,8 +121,8 @@ if __name__ == "__main__":
             prev_time = curr_time
             step += 1
             
-            if step % 50 == 0:
-                current_torques = 1 - current_torques
+            # if step % 50 == 0:
+            #     current_torques = 1 - current_torques
     
     except KeyboardInterrupt:
         pass

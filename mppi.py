@@ -21,6 +21,7 @@ def do_env_rollout(env, act_list, neural_input=None):
     H = act_list[0].shape[0]
     N = len(act_list)
     _neural_input = None
+    sim_joint_positions = np.zeros(env.action_dim)
         
     for i in range(N):
         env.set_env_state()
@@ -32,6 +33,11 @@ def do_env_rollout(env, act_list, neural_input=None):
             
             if neural_input is not None:
                 _neural_input = neural_input[k]
+                env.env.get_joint_positions(0, sim_joint_positions)
+
+                _, over_limits = apply_action_clipping_sim(sim_joint_positions, return_over_limit=True)
+                _neural_input[over_limits] = 1
+                
             _, r, _, _ = env.step(act[-1], _neural_input)
             
             rewards.append(r)
@@ -67,7 +73,6 @@ def generate_perturbed_actions(base_act, filter_coefs, history=None, idx=0):
         eps[i] = np.sum(eps[i:i+betas.shape[0]] * betas, axis=0)
         
     base_act += eps[:-betas.shape[0]]
-    # TODO: limit the joint angles
     base_act = apply_action_clipping_sim(base_act)
     return base_act
 

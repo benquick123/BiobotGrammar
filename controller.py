@@ -120,8 +120,9 @@ class Controller:
     def stop(self):
         # just turn off the torque. 
         # also need to see if dynamixelSDK closes port after termination(probably does on its own)
-        for i in range(0, (self.motor_num - 1), 1):
+        for i in range(self.motor_num):
             _, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_torque_enable, 0)
+            self.log_error(i, dxl_error)
             _, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_led, 0)
             self.log_error(i, dxl_error)
    
