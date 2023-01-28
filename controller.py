@@ -23,7 +23,7 @@ class Controller:
         self.motor_ID               = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12]
         self.motor_num              = len(self.motor_ID)
         
-        motor_configuration    = json.load(open("configs/292_motors.json"))
+        motor_configuration         = json.load(open("configs/292_motors.json"))
         self.min_limits             = np.array([motor_configuration["min_limits"][str(self.motor_ID[i])] for i in range(self.motor_num)])
         self.max_limits             = np.array([motor_configuration["max_limits"][str(self.motor_ID[i])] for i in range(self.motor_num)])
         self.orientations           = np.array([motor_configuration["orientations"][str(self.motor_ID[i])] for i in range(self.motor_num)])

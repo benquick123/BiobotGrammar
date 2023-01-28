@@ -3,7 +3,7 @@ import multiprocessing as mp
 import numpy as np
 
 from env import SimEnvWrapper
-from utils import get_make_sim_and_task_fn_without_args, stack_tensor_dict_list, apply_action_clipping_sim
+from utils import get_make_sim_and_task_fn_without_args, get_experiment_config, apply_action_clipping_sim
 
 
 def do_env_rollout(env, act_list, neural_input=None):
@@ -83,12 +83,12 @@ def generate_paths(args):
     then do rollouts with generated actions
     set seed inside this function for multiprocessing
     """
-    N, base_act, filter_coefs, base_seed, neural_input, history = args
+    N, base_act, filter_coefs, base_seed, neural_input, history, experiment_config = args
     
     np.random.seed(base_seed)
     act_list = []
 
-    make_sim_and_task_fn = get_make_sim_and_task_fn_without_args()
+    make_sim_and_task_fn = get_make_sim_and_task_fn_without_args(experiment_config)
     
     env = SimEnvWrapper(make_sim_and_task_fn, load=True)
     env.set_seed(base_seed)
@@ -109,9 +109,11 @@ def gather_paths_parallel(history, base_act, filter_coefs, neural_input, base_se
     pool = mp.Pool(processes=num_cpu)
     input_lists = list()
     
+    experiment_config = get_experiment_config()
+    
     for i in range(num_cpu):
         cpu_seed = base_seed + i*paths_per_cpu
-        input_lists.append((paths_per_cpu, base_act, filter_coefs, cpu_seed, neural_input, history))
+        input_lists.append((paths_per_cpu, base_act, filter_coefs, cpu_seed, neural_input, history, experiment_config))
         
     results = pool.map(generate_paths, input_lists)
     

@@ -4,25 +4,28 @@ from datetime import datetime
 import os
 
 import pyrobotdesign as rd
+import numpy as np
 
 from env import SimEnvWrapper
 from mppi import MPPI
 from neurons import NeuronStream
 from tasks import FlatTerrainTask
 from utils import (build_normalized_robot, finalize_robot, convert_joint_angles,
-                   get_make_sim_and_task_fn, make_graph, presimulate, apply_action_clipping_sim)
-from constants import *
+                   get_make_sim_and_task_fn, make_graph, presimulate, apply_action_clipping_sim, get_experiment_config)
+# from constants import *
 from view import prepare_viewer, viewer_step
 from controller import Controller
 
 
 if __name__ == "__main__":
     
+    experiment_config = get_experiment_config()
+    
     # initialize task
     task = FlatTerrainTask()
-    graphs = rd.load_graphs(GRAMMAR_FILEPATH)
+    graphs = rd.load_graphs(experiment_config["grammar_filepath"])
     rules = [rd.create_rule_from_graph(g) for g in graphs]
-    rule_sequence = [int(s.strip(",")) for s in RULE_SEQUENCE]
+    rule_sequence = [int(s.strip(",")) for s in experiment_config["rule_sequence"]]
     
     # initialize graph
     graph = make_graph(rules, rule_sequence)
@@ -38,7 +41,7 @@ if __name__ == "__main__":
     
     dof_count = main_env.get_robot_dof_count(0)
     objective_fn = task.get_objective_fn()
-    n_samples = 512 // NUM_THREADS
+    n_samples = 512 // experiment_config["num_threads"]
     
     # initialize controller
     controller = Controller()
@@ -48,28 +51,28 @@ if __name__ == "__main__":
     viewer, tracker = prepare_viewer(main_env)
     
     
-    if OPTIMIZE:
-        optimizer = MPPI(env, HORIZON, n_samples, 
-                            num_cpu=NUM_THREADS,
+    if experiment_config["optimize"]:
+        optimizer = MPPI(env, experiment_config["horizon"], n_samples, 
+                            num_cpu=experiment_config["num_threads"],
                             kappa=1.0,
                             gamma=task.discount_factor,
                             default_act="mean",
-                            filter_coefs=ACTION_FILTER_COEFS,
-                            seed=SEED,
+                            filter_coefs=experiment_config["action_filter_coefs"],
+                            seed=experiment_config["seed"],
                             neuron_stream=neuron_stream)
         
         # search for initial paths
-        paths = optimizer.do_rollouts(SEED)
+        paths = optimizer.do_rollouts(experiment_config["seed"])
         optimizer.update(paths)
-        optimizer.paths_per_cpu = 64 // NUM_THREADS
+        optimizer.paths_per_cpu = 64 // experiment_config["num_threads"]
     else:
         optimizer = None
     
-    if INPUT_ACTION_SEQUENCE is not None:
-        action_sequence = np.load(INPUT_ACTION_SEQUENCE)
-        SAVE_ACTION_SEQUENCE = False
+    if experiment_config["input_action_sequence"] is not None:
+        action_sequence = np.load(experiment_config["input_action_sequence"])
+        experiment_config["save_action_sequence"] = False
     
-    if SAVE_ACTION_SEQUENCE:
+    if experiment_config["save_action_sequence"]:
         action_sequence = []
     
     current_torques = np.ones(dof_count)
@@ -82,13 +85,13 @@ if __name__ == "__main__":
         while True:
             
             if optimizer is not None:
-                paths = optimizer.do_rollouts(SEED + len(optimizer.sol_act) + 1)
+                paths = optimizer.do_rollouts(experiment_config["seed"] + len(optimizer.sol_act) + 1)
                 optimizer.update(paths)
                 
                 actions = optimizer.act_sequence[0]
                 
                 optimizer.advance_time()
-            elif INPUT_ACTION_SEQUENCE is not None:
+            elif experiment_config["input_action_sequence"] is not None:
                 actions = action_sequence[step % len(action_sequence)]
             else:
                 try:
@@ -98,7 +101,7 @@ if __name__ == "__main__":
                 except:
                     actions = np.zeros(dof_count)
             
-            if SAVE_ACTION_SEQUENCE:
+            if experiment_config["save_action_sequence"]:
                 action_sequence.append(actions)
                 
             if viewer is not None:
@@ -133,7 +136,7 @@ if __name__ == "__main__":
     finally:
         # stop the threaded processes.
         print("STOPPING THE PROCESSES.")
-        if SAVE_ACTION_SEQUENCE:
+        if experiment_config["save_action_sequence"]:
             output_path = os.path.join("output", str(datetime.now()).split(".")[0].replace(" ", "_").replace(":", "-") + ".npy")
             np.save(output_path, action_sequence)
         

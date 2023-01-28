@@ -2,26 +2,26 @@ import json
 
 import numpy as np
 import pyrobotdesign as rd
+import multiprocessing as mp
 
 from tasks import FlatTerrainTask
-from constants import *
 
 
-JOINT_BASELINES_ANGLES_292 = np.pi * np.array([0, 0, 0, 0, 60, 120, 0, 0, -120, 60, 0]) / 180
 MOTOR_CONFIG = json.load(open("configs/292_motors.json", "r"))
+JOINT_BASELINES_ANGLES = np.pi * np.array([MOTOR_CONFIG["joint_baseline_angles_deg"][str(limit)] for limit in sorted(map(int, MOTOR_CONFIG["joint_baseline_angles_deg"].keys()))] + [0]) / 180
 MIN_LIMITS = np.array([MOTOR_CONFIG["min_limits"][str(limit)] for limit in sorted(map(int, MOTOR_CONFIG["min_limits"].keys()))] + [0])
 MAX_LIMITS = np.array([MOTOR_CONFIG["max_limits"][str(limit)] for limit in sorted(map(int, MOTOR_CONFIG["max_limits"].keys()))] + [2 ** 12])
 
 
 def convert_joint_angles(action, joint_baseline_angles=None):
     if joint_baseline_angles is None:
-        joint_baseline_angles = JOINT_BASELINES_ANGLES_292
+        joint_baseline_angles = JOINT_BASELINES_ANGLES
     assert len(action) == len(joint_baseline_angles)
     return action + joint_baseline_angles
 
 
 def apply_action_clipping_sim(action, return_over_limit=False):
-    joint_baseline_angles = JOINT_BASELINES_ANGLES_292
+    joint_baseline_angles = JOINT_BASELINES_ANGLES
     # receives action in radians
     action = np.array(action)
     # do the transform into real-world radians
@@ -67,14 +67,14 @@ def stack_tensor_dict_list(tensor_dict_list):
     return ret
 
 
-def get_make_sim_and_task_fn_without_args():
+def get_make_sim_and_task_fn_without_args(experiment_config):
     
     def fn():
         task = FlatTerrainTask()
         
-        graphs = rd.load_graphs(GRAMMAR_FILEPATH)
+        graphs = rd.load_graphs(experiment_config["grammar_filepath"])
         rules = [rd.create_rule_from_graph(g) for g in graphs]
-        rule_sequence = [int(s.strip(",")) for s in RULE_SEQUENCE]
+        rule_sequence = [int(s.strip(",")) for s in experiment_config["rule_sequence"]]
         graph = make_graph(rules, rule_sequence)
         robot = build_normalized_robot(graph)
         finalize_robot(robot)
@@ -177,3 +177,17 @@ def presimulate(robot):
     temp_sim.get_robot_world_aabb(robot_idx, lower, upper)
     return [-upper[0], -lower[1], 0.0], temp_sim.robot_has_collision(robot_idx)
 
+
+def get_experiment_config(path="configs/experiment.json"):
+    config = json.load(open(path, "r"))
+    
+    config["rule_sequence"] = config["rule_sequence"].split(" ")
+    if config["num_threads"] < 0:
+        config["num_threads"] = mp.cpu_count() - 1
+    
+    if config["seed"] < 0:
+        config["seed"] = np.random.randint(10000000)
+        
+    return config
+        
+    

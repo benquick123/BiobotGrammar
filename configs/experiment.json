@@ -1,0 +1,13 @@
+{
+    "grammar_filepath": "./data/designs/grammar_apr30_asym.dot",
+    "rule_sequence": "0, 7, 1, 12, 1, 13, 10, 6, 2, 4, 16, 3, 16, 4, 19, 17, 9, 2, 4, 5, 5, 4, 5, 16, 16, 4, 17, 18, 9, 14, 5, 8, 9, 8, 9, 9, 8, 8",
+    "action_filter_coefs": [0.10422766377112629, 0.3239870556899027, 0.3658903830367387, 0.3239870556899027, 0.10422766377112629],
+    "channels": 16,
+    "dt": 0.0666666666666,
+    "horizon": 40,
+    "num_threads": -1,
+    "seed": -1,
+    "save_action_sequence": false,
+    "optimize": false,
+    "input_action_sequence": "output/nice.npy"
+}
