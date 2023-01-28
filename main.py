@@ -13,7 +13,7 @@ from utils import (build_normalized_robot, finalize_robot, convert_joint_angles,
                    get_make_sim_and_task_fn, make_graph, presimulate, apply_action_clipping_sim)
 from constants import *
 from view import prepare_viewer, viewer_step
-# from controller import Controller
+from controller import Controller
 
 
 if __name__ == "__main__":
@@ -41,11 +41,11 @@ if __name__ == "__main__":
     n_samples = 512 // NUM_THREADS
     
     # initialize controller
-    controller = None # Controller()
+    controller = Controller()
     # initialize neuron stream
     neuron_stream = None # NeuronStream(channels=CHANNELS, dt=DT)
     # initialize rendering
-    viewer, tracker = prepare_viewer(main_env)
+    viewer, tracker = None, None # prepare_viewer(main_env)
     
     
     if OPTIMIZE:
@@ -105,6 +105,10 @@ if __name__ == "__main__":
                 actions_t = apply_action_clipping_sim(actions)
                 viewer_step(main_env, task, actions_t, viewer, tracker, step=step, torques=current_torques)
                 main_env.get_joint_positions(0, sim_joint_positions)
+                sim_joint_positions *= -1
+                # sim_joint_positions_t = apply_action_clipping_sim(sim_joint_positions)
+                # if np.any(sim_joint_positions_t != sim_joint_positions):
+                #     print(np.sum(sim_joint_positions_t != sim_joint_positions))
             
             if controller is not None:
                 actions_t = sim_joint_positions if viewer is not None else actions
@@ -118,8 +122,8 @@ if __name__ == "__main__":
             prev_time = curr_time
             step += 1
             
-            # if step % 50 == 0:
-            #     current_torques = 1 - current_torques
+            if step % 50 == 0:
+                current_torques = 1 - current_torques
     
     except KeyboardInterrupt:
         pass
@@ -129,6 +133,7 @@ if __name__ == "__main__":
         
     finally:
         # stop the threaded processes.
+        print("STOPPING THE PROCESSES.")
         if SAVE_ACTION_SEQUENCE:
             output_path = os.path.join("output", str(datetime.now()).split(".")[0].replace(" ", "_").replace(":", "-") + ".npy")
             np.save(output_path, action_sequence)

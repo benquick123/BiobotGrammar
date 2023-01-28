@@ -8,7 +8,7 @@ from constants import *
 
 
 JOINT_BASELINES_ANGLES_292 = np.pi * np.array([0, 0, 0, 0, -60, -120, 0, 0, 120, -60, 0]) / 180
-MOTOR_CONFIG = json.load(open("config/292_motors.json", "r"))
+MOTOR_CONFIG = json.load(open("configs/292_motors.json", "r"))
 MIN_LIMITS = np.array([MOTOR_CONFIG["min_limits"][str(limit)] for limit in sorted(map(int, MOTOR_CONFIG["min_limits"].keys()))] + [0])
 MAX_LIMITS = np.array([MOTOR_CONFIG["max_limits"][str(limit)] for limit in sorted(map(int, MOTOR_CONFIG["max_limits"].keys()))] + [2 ** 12])
 
@@ -20,8 +20,8 @@ def convert_joint_angles(action, joint_baseline_angles=None):
     return action + joint_baseline_angles
 
 
-def apply_action_clipping_sim(action):
-    joint_baseline_angles = np.pi * np.array([0, 0, 0, 0, -60, -120, 0, 0, 120, -60, 0]) / 180
+def apply_action_clipping_sim(action, return_over_limit=False):
+    joint_baseline_angles = JOINT_BASELINES_ANGLES_292
     # receives action in radians
     action = np.array(action)
     # do the transform into real-world radians
@@ -33,39 +33,20 @@ def apply_action_clipping_sim(action):
     action /= 2 * np.pi
 
     # clip the actions
-    action = np.clip(action, MIN_LIMITS, MAX_LIMITS)
+    action_clipped = np.clip(action, MIN_LIMITS, MAX_LIMITS)
+    over_limits = action_clipped != action
     
     # convert back to radians
-    action *= 2 * np.pi
-    action /= 4096
-    action -= np.pi
+    action_clipped *= 2 * np.pi
+    action_clipped /= 4096
+    action_clipped -= np.pi
     
     # subtract baseline
-    action += joint_baseline_angles
-    return action
-
-
-"""
-def set_joint_torques(sim, torques, norm=True):
-    if norm:
-        torques /= np.linalg.norm(torques, ord=1)
-        torques /= torques.max()
-        
-    # neural_input = 0.05 + 0.95 * (neural_input - neural_input.min()) / (neural_input.max() - neural_input.min())
-    print(len(sim.get_robot(0).links))
-    print()
-    for link, _torques in zip(sim.get_robot(0).links, torques):
-        link.joint_torque = _torques
-        
-    sim.update_motors(0)
-
-
-def get_joint_torques(sim):
-    torques = []
-    for link in sim.get_robot(0).links:
-        torques.append(link.joint_torque)
-    return torques
-"""
+    action_clipped += joint_baseline_angles
+    if return_over_limit:
+        return action_clipped, over_limits
+    else:
+        return action_clipped
 
 
 def stack_tensor_dict_list(tensor_dict_list):

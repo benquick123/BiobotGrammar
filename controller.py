@@ -7,7 +7,7 @@ import numpy as np
 from dynamixel_sdk import *  # Uses Dynamixel SDK library
 
 
-class Controller(Process):
+class Controller:
     
     def __init__(self):
         super(Controller, self).__init__()
@@ -122,6 +122,7 @@ class Controller(Process):
         # also need to see if dynamixelSDK closes port after termination(probably does on its own)
         for i in range(0, (self.motor_num - 1), 1):
             _, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_torque_enable, 0)
+            _, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_led, 0)
             self.log_error(i, dxl_error)
    
     def move(self, goal_pos):
