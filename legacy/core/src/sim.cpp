@@ -182,7 +182,7 @@ void BulletSimulation::updateTorques(Index robot_idx, const Ref<const VectorX> &
     
     BulletRobotWrapper wrapper = robot_wrappers_[robot_idx];
     
-    for (std::size_t i = 1; i < wrapper.motors_.size(); ++i) {
+    for (std::size_t i = 0; i < wrapper.motors_.size(); ++i) {
         auto motor = wrapper.motors_.at(i);
         motor->setMaxAppliedImpulse(torques(i) * time_step_);
     }

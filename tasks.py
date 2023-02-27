@@ -5,7 +5,7 @@ import pyrobotdesign as rd
 from objective_function import DotProductObjective
 
 class ForwardSpeedTask(ABC):
-    def __init__(self, time_step=1.0/240, discount_factor=0.99, interval=16,
+    def __init__(self, time_step=1/240, discount_factor=0.99, interval=16,
                              horizon=16, episode_len=float("inf"), noise_seed=0, force_std=0.0,
                              torque_std=0.0):
         self.time_step = time_step
@@ -52,7 +52,7 @@ class FlatTerrainTask(ForwardSpeedTask):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [2.0, 1.0, 2.0])
+        self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [20.0, 1.0, 20.0])
 
     def add_terrain(self, sim):
         sim.add_prop(self.floor, [0.0, -1.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))

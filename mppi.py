@@ -6,7 +6,7 @@ from env import SimEnvWrapper
 from utils import get_make_sim_and_task_fn_without_args, get_experiment_config, apply_action_clipping_sim
 
 
-def do_env_rollout(env, act_list, neural_input=None):
+def do_env_rollout(env, act_list, torques):
     """
         1) Construt env based on desired behavior and set to start_state.
         2) Generate rollouts using act_list.
@@ -20,8 +20,6 @@ def do_env_rollout(env, act_list, neural_input=None):
     
     H = act_list[0].shape[0]
     N = len(act_list)
-    _neural_input = None
-    sim_joint_positions = np.zeros(env.action_dim)
         
     for i in range(N):
         env.set_env_state()
@@ -30,15 +28,8 @@ def do_env_rollout(env, act_list, neural_input=None):
 
         for k in range(H):
             act.append(act_list[i][k])
-            
-            if neural_input is not None:
-                _neural_input = neural_input[k]
-                env.env.get_joint_positions(0, sim_joint_positions)
-
-                _, over_limits = apply_action_clipping_sim(sim_joint_positions, return_over_limit=True)
-                _neural_input[over_limits] = 1
                 
-            _, r, _, _ = env.step(act[-1], _neural_input)
+            _, r, _, _ = env.step(act[-1], torques=torques)
             
             rewards.append(r)
 
@@ -77,13 +68,12 @@ def generate_perturbed_actions(base_act, filter_coefs, history=None, idx=0):
     return base_act
 
 
-def generate_paths(args):
+def generate_paths(N, base_act, filter_coefs, base_seed, torques, history, experiment_config):
     """
     first generate enough perturbed actions
     then do rollouts with generated actions
     set seed inside this function for multiprocessing
     """
-    N, base_act, filter_coefs, base_seed, neural_input, history, experiment_config = args
     
     np.random.seed(base_seed)
     act_list = []
@@ -97,11 +87,11 @@ def generate_paths(args):
         act = generate_perturbed_actions(base_act, filter_coefs, history=history, idx=idx)
         act_list.append(act)
         
-    paths = do_env_rollout(env, act_list, neural_input=neural_input)
+    paths = do_env_rollout(env, act_list, torques=torques)
     return paths
 
 
-def gather_paths_parallel(history, base_act, filter_coefs, neural_input, base_seed, paths_per_cpu, num_cpu=None):
+def gather_paths_parallel(history, base_act, filter_coefs, torques, base_seed, paths_per_cpu, num_cpu=None):
     num_cpu = 1 if num_cpu is None else num_cpu
     num_cpu = mp.cpu_count() if num_cpu == 'max' else num_cpu
     assert isinstance(num_cpu, int)
@@ -113,9 +103,9 @@ def gather_paths_parallel(history, base_act, filter_coefs, neural_input, base_se
     
     for i in range(num_cpu):
         cpu_seed = base_seed + i*paths_per_cpu
-        input_lists.append((paths_per_cpu, base_act, filter_coefs, cpu_seed, neural_input, history, experiment_config))
+        input_lists.append((paths_per_cpu, base_act, filter_coefs, cpu_seed, torques, history, experiment_config))
         
-    results = pool.map(generate_paths, input_lists)
+    results = pool.starmap(generate_paths, input_lists)
     
     paths = []
     for result in results:
@@ -161,11 +151,10 @@ class MPPI:
         
         if neuron_stream is not None:
             self.neuron_stream = neuron_stream
-            self.neuron_stream_full = self.neuron_stream.get_spike_frequencies_array(most_current=True)
-            # TODO: check what is returned here.
-            self.neuron_stream_full = self.neuron_stream_full.T @ self.neuron_stream_wrapper.weights
+            self.max_spike_freq = 0
         else:
-            self.neuron_stream, self.neuron_stream_full = None, None
+            self.neuron_stream = None
+        self.current_torques = np.ones(self.env.action_dim)
 
     def update(self, paths):
         act = np.array([paths[i]["actions"] for i in range(len(paths))])
@@ -182,8 +171,8 @@ class MPPI:
         # accept first action and step
         action = act_sequence[0].copy()
         self.env.real_env_step(True)
-        neural_input = self.neuron_stream_full[len(self.sol_act)] if self.neuron_stream_full is not None else None
-        _, r, _, _ = self.env.step(action, neural_input=neural_input)
+        
+        _, r, _, _ = self.env.step(action, torques=self.current_torques)
         self.sol_act.append(action)
         
         # get updated action sequence
@@ -219,15 +208,25 @@ class MPPI:
             history[-i-1] = self.sol_act[-i-1]
             
         if self.neuron_stream is not None:
-            step = len(self.sol_act)
-            neural_input = self.neuron_stream_full[step:step+self.H, :]
+            # step = len(self.sol_act)
+            neural_input = self.neuron_stream.get_spike_frequencies_array(most_current=True)
+            
+            import matplotlib.pyplot as plt
+            # x = np.linspace(0, neural_input.shape[1] * self.neuron_stream.dt, neural_input.shape[1])
+            # for row in neural_input:
+            #     plt.plot(x, row)
+            # plt.show()
+            
+            neural_input = neural_input.mean(axis=1)
+            self.max_spike_freq = neural_input.max()
+            self.current_torques = neural_input / self.max_spike_freq
         else:
             neural_input = None
         
         paths = gather_paths_parallel(history=history,
                                       base_act=self.act_sequence,
                                       filter_coefs=self.filter_coefs,
-                                      neural_input=neural_input,
+                                      torques=self.current_torques,
                                       base_seed=seed,
                                       paths_per_cpu=self.paths_per_cpu,
                                       num_cpu=self.num_cpu)

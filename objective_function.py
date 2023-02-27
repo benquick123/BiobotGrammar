@@ -64,7 +64,7 @@ class DotProductObjective:
         if self.mean_velocity is None:
             self.mean_velocity = np.array(base_vel)
         else:
-            tau = 0.95
+            tau = 0.99
             self.mean_velocity = tau * self.mean_velocity + (1 - tau) * base_vel
             
         mean_base_vel = self.mean_velocity[-3:]

@@ -1,6 +1,7 @@
 import json
 import traceback
 from multiprocessing import Array, Process, Value
+from collections import defaultdict
 from time import sleep
 
 import numpy as np
@@ -28,7 +29,7 @@ class Controller:
         self.max_limits             = np.array([motor_configuration["max_limits"][str(self.motor_ID[i])] for i in range(self.motor_num)])
         self.orientations           = np.array([motor_configuration["orientations"][str(self.motor_ID[i])] for i in range(self.motor_num)])
         
-        self.ping_count = np.zeros(self.motor_num)
+        self.error_counts = defaultdict(int)
         
         #Read and Write data from and to motors
         
@@ -41,8 +42,6 @@ class Controller:
         self.torque_enable          = Array('i', [0] * self.motor_num) #boolean
         self.led                    = Array('i', [0] * self.motor_num) #boolean
 
-
-
         #Addresses
         self.addr_torque_enable     = 64
         self.addr_homing_offset     = 20
@@ -51,11 +50,11 @@ class Controller:
         self.addr_goal_position     = 116
         self.addr_present_position  = 132
         self.addr_led               = 65
+        self.addr_reboot            = 0x08 # ?
             #Dynamixel XL430 250T settings
         self.boudrate               = 3000000
         self.protocol_type          = 2
         self.DEVICENAME             = '/dev/ttyUSB0'
-
 
         self.portHandler = PortHandler(self.DEVICENAME) # ex) Windows: "COM*", Linux: "/dev/ttyUSB*", Mac: "/dev/tty.usbserial-*"
         self.packetHandler = PacketHandler(self.protocol_type)
@@ -93,38 +92,53 @@ class Controller:
         for i in range(self.motor_num):
             # read current position
             dxl_present_position, _, dxl_error = self.packetHandler.read4ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_present_position)
-            self.log_error(i, dxl_error)
+            self.handle_error(i, dxl_error)
                 
             self.present_POS[i] = dxl_present_position
-
-            # turn on LED
-            _, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_led, 1)
-            self.log_error(i, dxl_error)
+            
+            self.init_motor(i)
             
             # move to present position
             # TODO: is this really needed?
             # _, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_goal_position, self.present_POS[i])
-            # self.log_error(i, dxl_error)
-            
-            # enable torque
-            _, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_torque_enable, 1)
-            self.log_error(i, dxl_error)
+            # self.handle_error(i, dxl_error)
 
-    def log_error(self, motor, error):
+    def handle_error(self, motor, error):
         """
         Logs the errors if there are any.
         """
         if error != 0:
             print("MOTOR: %d (id: %d), ERROR: %s" % (motor, self.motor_ID[motor], self.packetHandler.getRxPacketError(error)))
+            # self.error_counts[motor] += 1
+            # if self.error_counts[motor] == 4:
+            #     print("RESETTING MOTOR %d (id: %d)" % (motor, self.motor_ID[motor]))
+            #     self.stop_motor(motor)
+            #     self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[motor])
+            #     self.error_counts[motor] = 0
+        else:
+            self.error_counts[motor] = 0
+            
+    def init_motor(self, motor):
+        # turn on LED
+        _, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[motor], self.addr_led, 1)
+        self.handle_error(motor, dxl_error)
+        
+        # enable torque
+        _, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[motor], self.addr_torque_enable, 1)
+        self.handle_error(motor, dxl_error)
+        
+    def stop_motor(self, motor, turn_off_led=True):
+        _, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[motor], self.addr_torque_enable, 0)
+        self.handle_error(motor, dxl_error)
+        if turn_off_led:
+            _, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[motor], self.addr_led, 0)
+            self.handle_error(motor, dxl_error)
 
     def stop(self):
         # just turn off the torque. 
         # also need to see if dynamixelSDK closes port after termination(probably does on its own)
         for i in range(self.motor_num):
-            _, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_torque_enable, 0)
-            self.log_error(i, dxl_error)
-            _, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_led, 0)
-            self.log_error(i, dxl_error)
+            self.stop_motor(i)
    
     def move(self, goal_pos):
         """
@@ -144,7 +158,7 @@ class Controller:
 
         for i in range(len(goal_pos)):
             _, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_goal_position, goal_pos[i])
-            self.log_error(i, dxl_error)
+            self.handle_error(i, dxl_error)
             
         # DOES NOT WORK FOR NOW!
         """
@@ -174,7 +188,7 @@ class Controller:
                 #print("motor: ", i," ", "new position: ", speed_position, "timestamp: ", s)
 
                 _, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_goal_position, speed_position)
-                self.log_error(i, dxl_error)
+                self.handle_error(i, dxl_error)
 
                 self.present_POS[i] = speed_position
 

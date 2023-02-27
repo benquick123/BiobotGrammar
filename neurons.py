@@ -26,11 +26,51 @@ class NeuronStream(Process):
         
         self.last_spike_readout = None
         
+    def send_heartbeat(self):
+        d = {'application': "Biobot",
+             'uuid': "uuid",
+             'type': 'heartbeat'}
+        j_msg = json.dumps(d)
+        self.heartbeat_socket.send(j_msg.encode('utf-8'))
+        
+        self.last_heartbeat = time()
+        self.socket_waits_reply = True
+        
+    def check_heartbeat(self):
+        if (time() - self.last_heartbeat) > 3.:
+            if self.socket_waits_reply:
+                
+                print("ZMQ: heartbeat haven't got reply, retrying...")
+                
+                self.last_heartbeat_time += 1.
+                
+                if (time() - self.last_reply) > 10.:
+                    # reconnecting the socket as per
+                    # the "lazy pirate" pattern (see the ZeroMQ guide)
+                    print("ZMQ: connection lost, trying to reconnect")
+                    self.poller.unregister(self.socket)
+                    self.socket.close()
+                    self.socket = None
+
+                    self.socket_waits_reply = False
+                    self.last_reply = time()
+            else:
+                self.send_heartbeat()
+        
     def run(self):
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.SUB)
         self.socket.connect("tcp://localhost:5556")
         self.socket.setsockopt(zmq.SUBSCRIBE, b'')
+        
+        self.heartbeat_socket = self.context.socket(zmq.REQ)
+        self.heartbeat_socket.connect("tcp://localhost:5557")
+        self.last_heartbeat = float("-inf")
+        self.socket_waits_reply = False
+        
+        self.poller = zmq.Poller()
+        self.poller.register(self.socket)
+        self.poller.register(self.heartbeat_socket)
         
         # self.compute_activations()
         self.receive_data()
@@ -39,6 +79,7 @@ class NeuronStream(Process):
         try:
             message = self.socket.recv_multipart(zmq.NOBLOCK)
         except zmq.error.Again:
+            print("ZMQ: ERROR")
             return None, None
         
         header = json.loads(message[1].decode('utf-8'))
@@ -57,28 +98,46 @@ class NeuronStream(Process):
         time_prev = time()
         time_start = time()
         while self.run_loop.value == 1:
-            header, body = self.receive({"spike"})
-            if header is not None and header["type"] == "spike":
-                channel = int(header["spike"]["electrode"].split(" ")[-1]) - 1
-                # ^This depends on the electrode names in OpenEphys. Assumes interval [0, 15].
-                idx = channel * self.spike_history_len + ((self.spike_offsets[channel] + 1) % self.spike_history_len)
-                self.raw_spikes_buffer[idx] = time()
-                self.spike_offsets[channel] = self.spike_offsets[channel] + 1
-                self.spike_offsets[channel] = self.spike_offsets[channel] % self.spike_history_len
-                
-            if (time() - time_prev) > self.dt:
-                time_prev = time()
-                i += 1
-                freqs = self._get_spike_frequencies()
-                # print(i, time(), np.all(freqs < 10))
-                for channel in range(self.channels):
-                    idx = channel * self.buffer_size + ((self.spike_frequency_offset.value + 1) % self.buffer_size)
-                    self.spike_frequency_buffer[idx] = freqs[channel]
-                self.spike_frequency_offset.value += 1
-                self.spike_frequency_offset.value %= self.buffer_size
-    
-            if self.enough_time.value == 0 and (time() - time_start) > (self.dt * self.buffer_size):
-                self.enough_time.value = 1   
+            self.check_heartbeat()
+            socks = dict(self.poller.poll(1))
+
+            if self.socket in socks:
+                header, body = self.receive({"spike"})
+                if header is not None and header["type"] == "spike":
+                    channel = int(header["spike"]["electrode"].split(" ")[-1]) - 1
+                    # ^This depends on the electrode names in OpenEphys. Assumes interval [0, 15].
+                    idx = channel * self.spike_history_len + ((self.spike_offsets[channel] + 1) % self.spike_history_len)
+                    self.raw_spikes_buffer[idx] = time()
+                    self.spike_offsets[channel] = self.spike_offsets[channel] + 1
+                    self.spike_offsets[channel] = self.spike_offsets[channel] % self.spike_history_len
+                    
+                if (time() - time_prev) > self.dt:
+                    time_prev = time()
+                    i += 1
+                    freqs = self._get_spike_frequencies()
+                    
+                    # print(i, time(), np.all(freqs < 10))
+                    for channel in range(self.channels):
+                        idx = channel * self.buffer_size + ((self.spike_frequency_offset.value + 1) % self.buffer_size)
+                        self.spike_frequency_buffer[idx] = freqs[channel]
+                    self.spike_frequency_offset.value += 1
+                    self.spike_frequency_offset.value %= self.buffer_size
+        
+                if self.enough_time.value == 0 and (time() - time_start) > (self.dt * self.buffer_size) + 1:
+                    self.enough_time.value = 1
+                    
+            elif self.heartbeat_socket in socks and self.socket_waits_reply:
+                message = self.heartbeat_socket.recv()
+                # print(f'ZMQ: Heartbeat reply: {message.decode("utf-8")}')
+                if self.socket_waits_reply:
+                    self.socket_waits_reply = False
+                else:
+                    print("ZMQ: Received reply before sending a message?")
+            
+        self.poller.unregister(self.socket)
+        self.socket.close()
+        self.poller.unregister(self.heartbeat_socket)
+        self.heartbeat_socket.close()
                 
     def stop(self):
         print("Stopping neuron stream")
@@ -89,7 +148,7 @@ class NeuronStream(Process):
         while self.enough_time.value == 0:
             sleep(0.1)
             print("Waiting to gather data.", end="\r")
-        
+            
         if self.enough_time.value == 1:
             print(" " * 30, end="\r")
         

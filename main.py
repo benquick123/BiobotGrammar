@@ -3,6 +3,11 @@ from time import time, sleep
 from datetime import datetime
 import os
 
+if not os.access('/dev/ttyUSB0', os.R_OK):
+    print("Fixing permissions. Input admin password below.")
+    os.system("./fix_permissions.sh")
+    os.system("setserial /dev/ttyUSB0 low_latency")
+
 import pyrobotdesign as rd
 import numpy as np
 
@@ -44,9 +49,16 @@ if __name__ == "__main__":
     n_samples = 512 // experiment_config["num_threads"]
     
     # initialize controller
-    controller = Controller()
+    controller = None # Controller()
     # initialize neuron stream
-    neuron_stream = None # NeuronStream(channels=CHANNELS, dt=DT)
+    if experiment_config["neuron_stream"]:
+        neuron_stream = NeuronStream(channels=experiment_config["channels"], 
+                                     dt=experiment_config["dt"],
+                                     buffer_size=int(experiment_config["neuron_stream_seconds"] / experiment_config["dt"]))
+        neuron_stream.start()
+    else:
+        neuron_stream = None
+        
     # initialize rendering
     viewer, tracker = prepare_viewer(main_env)
     
@@ -75,8 +87,7 @@ if __name__ == "__main__":
     if experiment_config["save_action_sequence"]:
         action_sequence = []
     
-    current_torques = np.ones(dof_count)
-    
+    current_torques = _current_torques = np.zeros(dof_count)
     sim_joint_positions = np.zeros(dof_count)
     
     try:
@@ -106,11 +117,13 @@ if __name__ == "__main__":
                 
             if viewer is not None:
                 actions_t = apply_action_clipping_sim(actions)
-                viewer_step(main_env, task, actions_t, viewer, tracker, step=step, torques=current_torques)
+                viewer_step(main_env, task, actions_t, viewer, tracker, step=step, torques=_current_torques)
+                
                 main_env.get_joint_positions(0, sim_joint_positions)
-
                 _, over_limits = apply_action_clipping_sim(sim_joint_positions, return_over_limit=True)
-                current_torques[over_limits] = 1
+                
+                _current_torques = current_torques.copy() if optimizer is None else optimizer.current_torques.copy()[:len(over_limits)]
+                _current_torques[over_limits] = 1
             
             if controller is not None:
                 actions_t = sim_joint_positions if viewer is not None else actions
