@@ -102,6 +102,12 @@ class Controller:
             # TODO: is this really needed?
             # _, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.motor_ID[i], self.addr_goal_position, self.present_POS[i])
             # self.handle_error(i, dxl_error)
+            
+    def reboot(self):
+        for i in range(self.motor_num):
+            if self.error_counts[i] > 0:
+                self.packetHandler.reboot(self.portHandler, self.motor_ID[i])
+                self.init_motor(i)
 
     def handle_error(self, motor, error):
         """
@@ -109,11 +115,12 @@ class Controller:
         """
         if error != 0:
             print("MOTOR: %d (id: %d), ERROR: %s" % (motor, self.motor_ID[motor], self.packetHandler.getRxPacketError(error)))
-            # self.error_counts[motor] += 1
+            self.error_counts[motor] += 1
             # if self.error_counts[motor] == 4:
             #     print("RESETTING MOTOR %d (id: %d)" % (motor, self.motor_ID[motor]))
             #     self.stop_motor(motor)
-            #     self.packetHandler.write1ByteTxRx(self.portHandler, self.motor_ID[motor])
+            #     self.packetHandler.reboot(self.portHandler, self.motor_ID[motor])
+            #     self.init_motor(motor)
             #     self.error_counts[motor] = 0
         else:
             self.error_counts[motor] = 0

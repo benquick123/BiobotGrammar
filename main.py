@@ -2,6 +2,7 @@ import traceback
 from time import time, sleep
 from datetime import datetime
 import os
+# import keyboard
 
 if not os.access('/dev/ttyUSB0', os.R_OK):
     print("Fixing permissions. Input admin password below.")
@@ -49,7 +50,7 @@ if __name__ == "__main__":
     n_samples = 512 // experiment_config["num_threads"]
     
     # initialize controller
-    controller = None # Controller()
+    controller = Controller()
     # initialize neuron stream
     if experiment_config["neuron_stream"]:
         neuron_stream = NeuronStream(channels=experiment_config["channels"], 
@@ -87,7 +88,7 @@ if __name__ == "__main__":
     if experiment_config["save_action_sequence"]:
         action_sequence = []
     
-    current_torques = _current_torques = np.zeros(dof_count)
+    current_torques = _current_torques = np.ones(dof_count)
     sim_joint_positions = np.zeros(dof_count)
     
     try:
@@ -137,6 +138,12 @@ if __name__ == "__main__":
             prev_time = curr_time
             step += 1
             
+            if controller is not None and os.path.exists("reboot"):
+                os.system("rm -r reboot")
+                controller.reboot()
+            #     print("You pressed r")
+            #     break
+            
             # if step % 50 == 0:
             #     current_torques = 1 - current_torques
     
@@ -157,3 +164,5 @@ if __name__ == "__main__":
             controller.stop()
         if neuron_stream is not None:
             neuron_stream.stop()
+            
+        sleep(3)
