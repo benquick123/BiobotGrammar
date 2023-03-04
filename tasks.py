@@ -53,10 +53,10 @@ class FlatTerrainTask(ForwardSpeedTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [1.6, 1.0, 0.9])
-        self.wall0 = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [1.6, 0.2, 0.02])
-        self.wall1 = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [1.6, 0.2, 0.02])
-        self.wall2 = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [0.02, 0.2, 0.9])
-        self.wall3 = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [0.02, 0.2, 0.9])
+        self.wall0 = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [1.6, 0.25, 0.02])
+        self.wall1 = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [1.6, 0.25, 0.02])
+        self.wall2 = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [0.02, 0.25, 0.9])
+        self.wall3 = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [0.02, 0.25, 0.9])
 
     def add_terrain(self, sim):
         sim.add_prop(self.floor, [0.0, -1.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
