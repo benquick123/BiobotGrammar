@@ -60,11 +60,11 @@ class NeuronStream(Process):
     def run(self):
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.SUB)
-        self.socket.connect("tcp://192.168.80.106:5556")
+        self.socket.connect("tcp://192.168.80.114:5556")
         self.socket.setsockopt(zmq.SUBSCRIBE, b'')
         
         self.heartbeat_socket = self.context.socket(zmq.REQ)
-        self.heartbeat_socket.connect("tcp://192.168.80.106:5557")
+        self.heartbeat_socket.connect("tcp://192.168.80.114:5557")
         self.last_heartbeat = float("-inf")
         self.socket_waits_reply = False
         
