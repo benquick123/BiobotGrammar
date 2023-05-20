@@ -69,7 +69,7 @@ class DotProductObjective:
             
         mean_base_vel = self.mean_velocity[-3:]
         mean_base_vel[1] = 0
-        base_vel_weight = mean_base_vel / np.linalg.norm(mean_base_vel)
+        base_vel_weight = mean_base_vel / (np.linalg.norm(mean_base_vel) + 1e-10)
         # base_vel_weight = np.where(mean_base_vel < 0, base_vel_weight * -1, base_vel_weight)
         
         if print_bool:

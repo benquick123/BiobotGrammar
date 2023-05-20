@@ -102,6 +102,7 @@ class Controller:
         for i in range(self.motor_num):
             if self.error_counts[i] > 0:
                 self.packetHandler.reboot(self.portHandler, self.motor_ID[i])
+                sleep(0.5)
                 self.init_motor(i)
 
     def handle_error(self, motor, error):
@@ -115,6 +116,7 @@ class Controller:
                 print("RESETTING MOTOR %d (id: %d)" % (motor, self.motor_ID[motor]))
                 self.stop_motor(motor)
                 self.packetHandler.reboot(self.portHandler, self.motor_ID[motor])
+                sleep(0.5)
                 self.init_motor(motor)
                 self.error_counts[motor] = 0
         else:

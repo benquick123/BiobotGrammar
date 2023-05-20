@@ -133,7 +133,11 @@ if __name__ == "__main__":
             
             curr_time = time()
             sleep_time = curr_time - prev_time
-            print("step =", step, "\ttime =", np.round(sleep_time, 4), "\tactions =", np.round(actions, 2), "\tsim_positions =", np.round(sim_joint_positions, 2))
+            print("step =", step, 
+                  "\ttime =", np.round(sleep_time, 4), 
+                  "\tactions =", np.round(actions, 2), 
+                  "\tsim_positions =", np.round(sim_joint_positions, 2),
+                  "\ttorques =", np.round(_current_torques))
             sleep((1 / 15 - sleep_time + 0.01) if sleep_time < 1 / 15 else 0.01)
             prev_time = curr_time
             step += 1

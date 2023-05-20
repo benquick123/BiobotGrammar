@@ -59,9 +59,9 @@ class GNN(torch.nn.Module):
             x2 = self.bn(2, F.relu(self.conv2(x1, adj, mask, self.add_loop)))
             x3 = self.bn(3, F.relu(self.conv3(x2, adj, mask, self.add_loop)))
         else:
-            x1 = F.relu(self.conv1(x0, adj, mask, self.add_loop))
-            x2 = F.relu(self.conv2(x1, adj, mask, self.add_loop))
-            x3 = F.relu(self.conv3(x2, adj, mask, self.add_loop))
+            x1 = F.relu(self.conv1(x0, adj, mask)) # , self.add_loop))
+            x2 = F.relu(self.conv2(x1, adj, mask)) # , self.add_loop))
+            x3 = F.relu(self.conv3(x2, adj, mask)) # , self.add_loop))
 
         x = torch.cat([x1, x2, x3], dim=-1)
         

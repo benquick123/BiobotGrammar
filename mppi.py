@@ -218,8 +218,10 @@ class MPPI:
             # plt.show()
             
             neural_input = neural_input.mean(axis=1)
-            self.max_spike_freq = neural_input.max()
-            self.current_torques = neural_input / self.max_spike_freq
+            if neural_input.max() > self.max_spike_freq:
+                self.max_spike_freq = neural_input.max()
+                
+            self.current_torques = neural_input / (self.max_spike_freq + 1e-10)
         else:
             neural_input = None
         

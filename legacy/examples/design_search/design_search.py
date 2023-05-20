@@ -139,7 +139,7 @@ def simulate(robot, task, opt_seed, task_args, neuron_stream_wrapper=None):
         
         optimizer.advance_time()
 
-        print("step:", j)
+        # print("step:", j)
         for k in range(task.interval):
             main_sim.set_joint_targets(robot_idx, input_sequence[:, j].reshape(-1, 1))
             task.add_noise(main_sim, j * task.interval + k)
@@ -148,7 +148,7 @@ def simulate(robot, task, opt_seed, task_args, neuron_stream_wrapper=None):
             neuron_input = None
             if optimizer.neuron_stream_wrapper is not None:
                 neuron_input = optimizer.neuron_stream_full[j]
-            rewards[j * task.interval + k] = objective_fn(main_sim, neuron_input, print_bool=k == 0)
+            rewards[j * task.interval + k] = objective_fn(main_sim, neuron_input, print_bool=False)
             
     main_sim.restore_state()
     
