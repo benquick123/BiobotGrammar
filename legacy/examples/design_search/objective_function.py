@@ -77,13 +77,16 @@ class DotProductObjective:
         reward += base_vel[-3:].dot(base_vel_weight)
         # reward += base_vel[-3:].dot(self.base_vel_weight)
         
-        # maximization (?) of used power:
-        joint_vel = np.zeros(dof_count, dtype=np.float64)
-        sim.get_joint_velocities(robot_idx, joint_vel)
-        motor_torques = np.zeros(dof_count, dtype=np.float64)
-        sim.get_joint_motor_torques(robot_idx, motor_torques)
+        # maximization (?) of used power:ž
+        if dof_count > 0:
+            joint_vel = np.zeros(dof_count, dtype=np.float64)
+            sim.get_joint_velocities(robot_idx, joint_vel)
+            motor_torques = np.zeros(dof_count, dtype=np.float64)
+            sim.get_joint_motor_torques(robot_idx, motor_torques)
+            power = motor_torques.dot(joint_vel)
+        else:
+            power = 0
         
-        power = motor_torques.dot(joint_vel)
         reward += self.power_weight * power
         
         # punishment for not using all the neural inputs:
