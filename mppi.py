@@ -1,9 +1,12 @@
 import multiprocessing as mp
 
 import numpy as np
+import scipy
 
 from env import SimEnvWrapper
-from utils import get_make_sim_and_task_fn_without_args, get_experiment_config, apply_action_clipping_sim
+from utils import (JointTypes, angle_finder_fn, apply_action_clipping_sim,
+                   get_angles_from_points, get_experiment_config,
+                   get_make_sim_and_task_fn_without_args)
 
 
 def do_env_rollout(env, act_list, torques):
@@ -64,11 +67,11 @@ def generate_perturbed_actions(base_act, filter_coefs, history=None, idx=0):
         eps[i] = np.sum(eps[i:i+betas.shape[0]] * betas, axis=0)
         
     base_act += eps[:-betas.shape[0]]
-    base_act = apply_action_clipping_sim(base_act)
+    # base_act = apply_action_clipping_sim(base_act)
     return base_act
 
 
-def generate_paths(N, base_act, filter_coefs, base_seed, torques, history, experiment_config):
+def generate_paths(N, base_act, filter_coefs, base_seed, torques, action_override, history, experiment_config):
     """
     first generate enough perturbed actions
     then do rollouts with generated actions
@@ -85,13 +88,15 @@ def generate_paths(N, base_act, filter_coefs, base_seed, torques, history, exper
     
     for idx in range(N):
         act = generate_perturbed_actions(base_act, filter_coefs, history=history, idx=idx)
+        if action_override is not None:
+            act[:, ~np.isnan(action_override)] = action_override[~np.isnan(action_override)]
         act_list.append(act)
         
     paths = do_env_rollout(env, act_list, torques=torques)
     return paths
 
 
-def gather_paths_parallel(history, base_act, filter_coefs, torques, base_seed, paths_per_cpu, num_cpu=None):
+def gather_paths_parallel(history, base_act, filter_coefs, torques, action_override, base_seed, paths_per_cpu, num_cpu=None):
     num_cpu = 1 if num_cpu is None else num_cpu
     num_cpu = mp.cpu_count() if num_cpu == 'max' else num_cpu
     assert isinstance(num_cpu, int)
@@ -103,7 +108,7 @@ def gather_paths_parallel(history, base_act, filter_coefs, torques, base_seed, p
     
     for i in range(num_cpu):
         cpu_seed = base_seed + i*paths_per_cpu
-        input_lists.append((paths_per_cpu, base_act, filter_coefs, cpu_seed, torques, history, experiment_config))
+        input_lists.append((paths_per_cpu, base_act, filter_coefs, cpu_seed, torques, action_override, history, experiment_config))
         
     results = pool.starmap(generate_paths, input_lists)
     
@@ -125,6 +130,7 @@ class MPPI:
                  default_act='repeat',
                  warmstart=True,
                  seed=123,
+                 joint_types=None,
                  neuron_stream=None,
                  task_args=None):
         
@@ -132,6 +138,7 @@ class MPPI:
         self.n, self.m = env.observation_dim, env.action_dim
         self.H, self.paths_per_cpu, self.num_cpu = H, paths_per_cpu, num_cpu
         self.warmstart = warmstart
+        self.joint_types = joint_types
 
         self.mean, self.filter_coefs, self.kappa, self.gamma = mean, filter_coefs, kappa, gamma
         if mean is None:
@@ -155,6 +162,39 @@ class MPPI:
         else:
             self.neuron_stream = None
         self.current_torques = np.ones(self.env.action_dim)
+        
+        if self.joint_types is not None:
+            joint_type_mask = self.joint_types != JointTypes.OTHER
+            self.current_torques[joint_type_mask] = 10.0
+            
+            side_lengths = [1]
+            prev_idx = None
+            for idx in range(len(self.joint_types)):
+                if self.joint_types[idx] == JointTypes.BODY:
+                    if prev_idx is None:
+                        prev_idx = idx
+                    else:
+                        joint_types_subset = self.joint_types[prev_idx:idx]
+                        side_lengths.append(1 + np.sum(joint_types_subset == JointTypes.BODY_FIXED))
+            side_lengths.append(1)
+            
+            # find the angles of the fixed joints
+            best_score = float("inf")
+            best_result = None
+            for _ in range(10):
+                initial_x = np.random.rand(len(side_lengths) * 2) - 0.5
+                result = scipy.optimize.minimize(angle_finder_fn, initial_x, args=(side_lengths, ), method="CG")
+                if best_score > result.fun:
+                    best_score = result.fun
+                    best_result = result
+                    
+            angles = get_angles_from_points(best_result.x.reshape(-1, 2))
+            self.action_override = np.zeros_like(self.current_torques) * np.nan
+            self.action_override[self.joint_types == JointTypes.BODY] = angles[:-1]
+            self.action_override[self.joint_types == JointTypes.BODY_FIXED] = 0
+        else:
+            self.action_override = None
+            
 
     def update(self, paths):
         act = np.array([paths[i]["actions"] for i in range(len(paths))])
@@ -211,7 +251,7 @@ class MPPI:
             # step = len(self.sol_act)
             neural_input = self.neuron_stream.get_spike_frequencies_array(most_current=True)
             
-            import matplotlib.pyplot as plt
+            # import matplotlib.pyplot as plt
             # x = np.linspace(0, neural_input.shape[1] * self.neuron_stream.dt, neural_input.shape[1])
             # for row in neural_input:
             #     plt.plot(x, row)
@@ -229,6 +269,7 @@ class MPPI:
                                       base_act=self.act_sequence,
                                       filter_coefs=self.filter_coefs,
                                       torques=self.current_torques,
+                                      action_override=self.action_override,
                                       base_seed=seed,
                                       paths_per_cpu=self.paths_per_cpu,
                                       num_cpu=self.num_cpu)

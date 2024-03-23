@@ -26,16 +26,13 @@ void initSim(py::module &m) {
       .def("get_robot_dof_count", &rd::Simulation::getRobotDofCount)
       .def("get_joint_positions", &rd::Simulation::getJointPositions)
       .def("get_joint_velocities", &rd::Simulation::getJointVelocities)
-      .def("get_joint_target_positions",
-           &rd::Simulation::getJointTargetPositions)
-      .def("get_joint_target_velocities",
-           &rd::Simulation::getJointTargetVelocities)
+      .def("get_joint_target_positions", &rd::Simulation::getJointTargetPositions)
+      .def("get_joint_target_velocities", &rd::Simulation::getJointTargetVelocities)
       .def("get_joint_motor_torques", &rd::Simulation::getJointMotorTorques)
+      .def("get_joint_types", &rd::Simulation::getJointTypes)
       .def("set_joint_targets", &rd::Simulation::setJointTargets)
-      .def("set_joint_target_positions",
-           &rd::Simulation::setJointTargetPositions)
-      .def("set_joint_target_velocities",
-           &rd::Simulation::setJointTargetVelocities)
+      .def("set_joint_target_positions", &rd::Simulation::setJointTargetPositions)
+      .def("set_joint_target_velocities", &rd::Simulation::setJointTargetVelocities)
       .def("add_joint_torques", &rd::Simulation::addJointTorques)
       .def("add_link_force_torque", &rd::Simulation::addLinkForceTorque)
       .def("get_robot_world_aabb", &rd::Simulation::getRobotWorldAABB)

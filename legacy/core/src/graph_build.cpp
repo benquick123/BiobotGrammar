@@ -6,6 +6,7 @@
 #include <robot_design/graph.h>
 #include <robot_design/robot.h>
 #include <stdexcept>
+#include <iostream>
 
 namespace robot_design {
 
@@ -80,6 +81,7 @@ Robot buildRobot(const Graph &graph) {
       joint_rot.y() = -joint_rot.y();
       joint_axis(2) = -joint_axis(2);
     }
+    // std::cout << entry.joint_color_ << "\n\n";
     robot.links_.emplace_back(
         /*parent=*/entry.parent_link_, /*joint_type=*/entry.joint_type_,
         /*joint_pos=*/entry.joint_pos_, /*joint_rot=*/joint_rot,

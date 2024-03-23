@@ -23,9 +23,9 @@ class SimEnvWrapper:
         
         if torques is not None:
             self.env.get_joint_positions(0, self.sim_joint_positions)
-            _, over_limits = apply_action_clipping_sim(self.sim_joint_positions, return_over_limit=True)
-            torques = torques[:len(over_limits)]
-            torques[over_limits] = 1
+            # _, over_limits = apply_action_clipping_sim(self.sim_joint_positions, return_over_limit=True)
+            # torques = torques[:len(over_limits)]
+            # torques[over_limits] = 1
             
             # torques = np.zeros_like(torques)
             self.env.update_torques(0, torques)

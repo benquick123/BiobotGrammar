@@ -345,6 +345,7 @@ void BulletSimulation::getJointPositions(Index robot_idx, Ref<VectorX> pos) cons
     int offset = 0;
     for (int link_idx = 0; link_idx < multi_body.getNumLinks(); ++link_idx) {
         const btMultibodyLink &link = multi_body.getLink(link_idx);
+        // std::cout << multi_body << "\n";
         for (int pos_var_idx = 0; pos_var_idx < link.m_posVarCount; ++pos_var_idx) {
             pos(offset) = multi_body.getJointPosMultiDof(link_idx)[pos_var_idx];
             ++offset;
@@ -375,6 +376,37 @@ void BulletSimulation::getJointTargetVelocities(Index robot_idx, Ref<VectorX> ta
 void BulletSimulation::getJointMotorTorques(Index robot_idx, Ref<VectorX> motor_torques) const {
     motor_torques = robot_wrappers_[robot_idx].joint_motor_torques_;
 }
+
+void BulletSimulation::getJointTypes(Index robot_idx, Ref<VectorX> types) {
+    BulletRobotWrapper &wrapper = robot_wrappers_[robot_idx];
+    const Robot *robot = wrapper.robot_.get();
+
+    int dof_idx = 0;
+    // The base link (index 0) has no actuated degrees of freedom
+    for (std::size_t i = 1; i < robot->links_.size(); ++i) {
+        // The first non-base link in Bullet has index 0
+        const btMultibodyLink &link = wrapper.multi_body_->getLink(i - 1);
+        for (int j = 0; j < link.m_dofCount; ++j) {
+            // std::cout << "C" << robot->links_[i].joint_color_ << "\n";
+
+            Scalar color_signature = 0;
+            for (int color_idx = 0; color_idx < robot->links_[i].joint_color_.size(); color_idx++) {
+                color_signature += robot->links_[i].joint_color_[color_idx];
+            }
+
+            // std::cout << "C" << color_signature << "\n";
+            if (color_signature == 3)
+                types(dof_idx) = 1;
+            else if (color_signature == 0)
+                types(dof_idx) = 2;
+            else
+                types(dof_idx) = 0;
+
+            ++dof_idx;
+        }
+    }
+}
+
 
 void BulletSimulation::setJointTargets(Index robot_idx, const Ref<const VectorX> &target) {
     BulletRobotWrapper &wrapper = robot_wrappers_[robot_idx];

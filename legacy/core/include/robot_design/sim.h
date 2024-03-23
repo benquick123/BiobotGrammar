@@ -41,27 +41,17 @@ public:
   virtual int getRobotDofCount(Index robot_idx) const = 0;
   virtual void getJointPositions(Index robot_idx, Ref<VectorX> pos) const = 0;
   virtual void getJointVelocities(Index robot_idx, Ref<VectorX> vel) const = 0;
-  virtual void getJointTargetPositions(Index robot_idx,
-                                       Ref<VectorX> target_pos) const = 0;
-  virtual void getJointTargetVelocities(Index robot_idx,
-                                        Ref<VectorX> target_vel) const = 0;
-  virtual void getJointMotorTorques(Index robot_idx,
-                                    Ref<VectorX> motor_torques) const = 0;
-  virtual void setJointTargets(Index robot_idx,
-                               const Ref<const VectorX> &target) = 0;
-  virtual void
-  setJointTargetPositions(Index robot_idx,
-                          const Ref<const VectorX> &target_pos) = 0;
-  virtual void
-  setJointTargetVelocities(Index robot_idx,
-                           const Ref<const VectorX> &target_vel) = 0;
-  virtual void addJointTorques(Index robot_idx,
-                               const Ref<const VectorX> &torque) = 0;
-  virtual void addLinkForceTorque(Index robot_idx, Index link_idx,
-                                  const Ref<const Vector3> &force,
+  virtual void getJointTargetPositions(Index robot_idx, Ref<VectorX> target_pos) const = 0;
+  virtual void getJointTargetVelocities(Index robot_idx, Ref<VectorX> target_vel) const = 0;
+  virtual void getJointMotorTorques(Index robot_idx, Ref<VectorX> motor_torques) const = 0;
+  virtual void getJointTypes(Index robot_idx, Ref<VectorX> types) = 0;
+  virtual void setJointTargets(Index robot_idx,const Ref<const VectorX> &target) = 0;
+  virtual void setJointTargetPositions(Index robot_idx, const Ref<const VectorX> &target_pos) = 0;
+  virtual void setJointTargetVelocities(Index robot_idx, const Ref<const VectorX> &target_vel) = 0;
+  virtual void addJointTorques(Index robot_idx, const Ref<const VectorX> &torque) = 0;
+  virtual void addLinkForceTorque(Index robot_idx, Index link_idx, const Ref<const Vector3> &force,
                                   const Ref<const Vector3> &torque) = 0;
-  virtual void getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
-                                 Ref<Vector3> upper) const = 0;
+  virtual void getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower, Ref<Vector3> upper) const = 0;
   virtual bool robotHasCollision(Index robot_idx) const = 0;
   virtual Scalar getTimeStep() const = 0;
   virtual Vector3 getGravity() const = 0;
@@ -133,31 +123,20 @@ public:
                                Ref<Vector6> vel) const override;
   virtual Scalar getLinkMass(Index robot_idx, Index link_idx) const override;
   virtual int getRobotDofCount(Index robot_idx) const override;
-  virtual void getJointPositions(Index robot_idx,
-                                 Ref<VectorX> pos) const override;
-  virtual void getJointVelocities(Index robot_idx,
-                                  Ref<VectorX> vel) const override;
-  virtual void getJointTargetPositions(Index robot_idx,
-                                       Ref<VectorX> target_pos) const override;
-  virtual void getJointTargetVelocities(Index robot_idx,
-                                        Ref<VectorX> target_vel) const override;
-  virtual void getJointMotorTorques(Index robot_idx,
-                                    Ref<VectorX> motor_torques) const override;
-  virtual void setJointTargets(Index robot_idx,
-                               const Ref<const VectorX> &target) override;
-  virtual void
-  setJointTargetPositions(Index robot_idx,
-                          const Ref<const VectorX> &target_pos) override;
-  virtual void
-  setJointTargetVelocities(Index robot_idx,
-                           const Ref<const VectorX> &target_vel) override;
-  virtual void addJointTorques(Index robot_idx,
-                               const Ref<const VectorX> &torque) override;
-  virtual void addLinkForceTorque(Index robot_idx, Index link_idx,
+  virtual void getJointPositions(Index robot_idx, Ref<VectorX> pos) const override;
+  virtual void getJointVelocities(Index robot_idx, Ref<VectorX> vel) const override;
+  virtual void getJointTargetPositions(Index robot_idx, Ref<VectorX> target_pos) const override;
+  virtual void getJointTargetVelocities(Index robot_idx, Ref<VectorX> target_vel) const override;
+  virtual void getJointMotorTorques(Index robot_idx, Ref<VectorX> motor_torques) const override;
+  virtual void getJointTypes(Index robot_idx, Ref<VectorX> types) override;
+  virtual void setJointTargets(Index robot_idx, const Ref<const VectorX> &target) override;
+  virtual void setJointTargetPositions(Index robot_idx, const Ref<const VectorX> &target_pos) override;
+  virtual void setJointTargetVelocities(Index robot_idx, const Ref<const VectorX> &target_vel) override;
+  virtual void addJointTorques(Index robot_idx, const Ref<const VectorX> &torque) override;
+  virtual void addLinkForceTorque(Index robot_idx, Index link_idx, 
                                   const Ref<const Vector3> &force,
                                   const Ref<const Vector3> &torque) override;
-  virtual void getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower,
-                                 Ref<Vector3> upper) const override;
+  virtual void getRobotWorldAABB(Index robot_idx, Ref<Vector3> lower, Ref<Vector3> upper) const override;
   virtual bool robotHasCollision(Index robot_idx) const override;
   virtual Scalar getTimeStep() const override;
   virtual Vector3 getGravity() const override;

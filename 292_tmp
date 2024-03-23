@@ -1,0 +1,18 @@
+original 292:
+"0, 7, 1, 12, 1, 13, 10, 6, 2, 4, 16, 3, 16, 4, 19, 17, 9, 2, 4, 5, 5, 4, 5, 16, 16, 4, 17, 18, 9, 14, 5, 8, 9, 8, 9, 9, 8, 8"
+
+working:
+"0, 7, 1, 12, 1, 13, 10, 6, 2, 4, 16, 3, 16, 4, 19, 9, 2, 4, 5, 5, 16, 16, 9, 8, 9, 8"
+
+3 limb robot:
+"0, 7, 1, 11, 1, 11, 1, 10, 1, 2, 11, 3, 10, 6, 2, 4, 14, 3, 14, 4, 17, 9, 2, 4, 5, 5, 5, 15, 15, 9, 8, 9, 8, 8, 15"
+
+---------------------------------------------------------------------------------------------------------------------------
+rule 12 makes the joint static.
+
+sequence of rules 13 and 12 determines the length of the body. any occurence of the rule 13 between 12s determines
+the length of a segment.
+
+rules >=10 are joints. how is the order processed?
+
+

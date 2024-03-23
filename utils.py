@@ -1,4 +1,5 @@
 import json
+from enum import Enum
 
 import numpy as np
 import pyrobotdesign as rd
@@ -11,6 +12,35 @@ MOTOR_CONFIG = json.load(open("configs/292_motors.json", "r"))
 JOINT_BASELINES_ANGLES = np.pi * np.array([MOTOR_CONFIG["joint_baseline_angles_deg"][str(limit)] for limit in sorted(map(int, MOTOR_CONFIG["joint_baseline_angles_deg"].keys()))] + [0]) / 180
 MIN_LIMITS = np.array([MOTOR_CONFIG["min_limits"][str(limit)] for limit in sorted(map(int, MOTOR_CONFIG["min_limits"].keys()))] + [0])
 MAX_LIMITS = np.array([MOTOR_CONFIG["max_limits"][str(limit)] for limit in sorted(map(int, MOTOR_CONFIG["max_limits"].keys()))] + [2 ** 12])
+
+
+class JointTypes:
+    
+    OTHER = 0.0
+    BODY = 1.0
+    BODY_FIXED = 2.0
+    
+def get_angles_from_points(x):
+    angles = []
+    for p0, p1, p2 in zip(x, x[(np.arange(1, len(x) + 1) % len(x))], x[(np.arange(2, len(x) + 2) % len(x))]):
+        p01, p12 = p0 - p1, p1 - p2
+        p01_len = np.linalg.norm(p0 - p1)
+        p12_len = np.linalg.norm(p1 - p2)
+        angles.append(np.arccos(np.dot(p01, p12) / (p01_len * p12_len)))
+        
+    return np.array(angles)
+    
+    
+def angle_finder_fn(x, ls):
+    x = x.reshape(-1, 2)
+    centroid = x.mean(axis=0)
+    dist_err = 0
+    for p0, p1, dist in zip(x, x[(np.arange(1, len(x) + 1) % len(x))], ls):
+        dist_err += np.linalg.norm(np.linalg.norm(p0 - p1) - dist)
+    
+    angles = get_angles_from_points(x)
+    angle_sum = np.sum(angles)
+    return dist_err + np.linalg.norm(centroid) + np.linalg.norm(angle_sum - (len(ls) - 2) * np.pi) + np.std(angles)
 
 
 def convert_joint_angles(action, joint_baseline_angles=None):

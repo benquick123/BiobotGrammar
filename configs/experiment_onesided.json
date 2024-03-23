@@ -1,0 +1,15 @@
+{
+    "grammar_filepath": "./data/designs/grammar_apr30_onesided.dot",
+    "rule_sequence": "0, 7, 1, 11, 1, 11, 1, 10, 1, 2, 11, 3, 10, 6, 2, 4, 14, 3, 14, 4, 17, 9, 2, 4, 5, 5, 5, 15, 15, 9, 8, 9, 8, 8, 15",
+    "action_filter_coefs": [0.10422766377112629, 0.3239870556899027, 0.3658903830367387, 0.3239870556899027, 0.10422766377112629],
+    "channels": 16,
+    "dt": 0.0666666666666,
+    "horizon": 40,
+    "num_threads": 7,
+    "seed": -1,
+    "save_action_sequence": false,
+    "optimize": true,
+    "neuron_stream": false,
+    "neuron_stream_seconds": 4,
+    "input_action_sequence": null
+}
