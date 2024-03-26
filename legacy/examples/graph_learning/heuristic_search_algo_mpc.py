@@ -28,7 +28,7 @@ import ast
 import numpy as np
 from copy import deepcopy
 import torch
-from torch import optim
+# from torch import optim
 import torch.nn.functional as F
 # from torch_geometric.data.data import Data
 
@@ -251,6 +251,7 @@ def search_algo(args):
             t_start = time.time()
 
             V.eval()
+            # print("Start epoch %d" % epoch)
 
             # update eps and eps_sample
             if args.eps_schedule == 'linear-decay':
@@ -275,7 +276,8 @@ def search_algo(args):
                 num_samples = args.num_samples
         
             # use e-greedy to sample a design within maximum #steps.
-            for _ in range(num_samples):
+            for sample_idx in range(num_samples):
+                # print("Sample %d/%d" % (sample_idx + 1, num_samples), " " * 32, end="\r")
                 valid = False
                 while not valid:
                     t0 = time.time()
@@ -297,6 +299,8 @@ def search_algo(args):
                             break
                     
                     valid = env.is_valid(state)
+                    # if valid:
+                    #     valid = np.sum([rule == 2 for rule in rule_seq]) == 3
 
                     t_sample += time.time() - t0
 
@@ -322,8 +326,13 @@ def search_algo(args):
                 if predicted_value > selected_reward:
                     selected_design, selected_reward = state, predicted_value
                     selected_rule_seq, selected_state_seq = rule_seq, state_seq
+                    
+            print("")
 
             t0 = time.time()
+
+            if selected_design is None:
+                print("No valid designs in epoch %d" % epoch)
 
             repeated = False
             if hash(selected_design) in V_hat:
@@ -334,6 +343,7 @@ def search_algo(args):
             
             for _ in range(args.num_eval):
                 _, rew = env.get_reward(selected_design, selected_rule_seq)
+                rew -= 5 * (np.sum([rule == 2 for rule in selected_rule_seq]) == 3)
                 if rew > reward:
                     reward, best_seed = rew, env.last_opt_seed
 
@@ -465,7 +475,7 @@ if __name__ == '__main__':
     args_list = ['--task', 'FlatTerrainTask',
                  '--grammar-file', '../../data/designs/grammar_apr30.dot',
                  '--num-iterations', '2000',
-                 '--mpc-num-processes', '32',
+                 '--mpc-num-processes', '8',
                  '--lr', '1e-4',
                  '--eps-start', '1.0',
                  '--eps-end', '0.1',

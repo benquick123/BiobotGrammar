@@ -112,7 +112,7 @@ class RobotGrammarEnv:
 
             self.task_args.rule_sequence = rule_sequence
             
-            input_sequence, reward = simulate(robot, self.task, opt_seed, self.task_args, neuron_stream_wrapper=None)
+            input_sequence, reward = simulate(robot, self.task, opt_seed, self.task_args, neuron_stream=None)
 
             if reward is None or (reward is not None and reward > self.task.result_bound):
                 reward = -2.0

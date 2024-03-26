@@ -6,11 +6,13 @@ import os
 import random
 import signal
 import sys
+
 from time import sleep
 
 import numpy as np
 import pyrobotdesign as rd
 from trajopt.algos.mppi import MPPI
+# from mppi import MPPI
 
 import env
 import mcts
@@ -78,8 +80,8 @@ def presimulate(robot):
     temp_sim.get_robot_world_aabb(robot_idx, lower, upper)
     return [-upper[0], -lower[1], 0.0], temp_sim.robot_has_collision(robot_idx)
 
-def simulate(robot, task, opt_seed, task_args, neuron_stream_wrapper=None):
-    print("neuron_stream_wrapper ==", neuron_stream_wrapper)
+def simulate(robot, task, opt_seed, task_args, neuron_stream=None):
+    # print("neuron_stream ==", neuron_stream)
     robot_init_pos, has_self_collision = presimulate(robot)
 
     if has_self_collision:
@@ -108,6 +110,12 @@ def simulate(robot, task, opt_seed, task_args, neuron_stream_wrapper=None):
     
     n_samples = 512
     
+    if dof_count > 0:
+        sim_joint_types = np.zeros(dof_count)
+        main_sim.get_joint_types(0, sim_joint_types)
+    else:
+        sim_joint_types = None
+    
     optimizer = MPPI(side_sim, task.horizon, n_samples // task_args.jobs, 
                         num_cpu=task_args.jobs,
                         kappa=1.0,
@@ -115,7 +123,8 @@ def simulate(robot, task, opt_seed, task_args, neuron_stream_wrapper=None):
                         default_act="mean",
                         filter_coefs=[0.10422766377112629, 0.3239870556899027, 0.3658903830367387, 0.3239870556899027, 0.10422766377112629],
                         seed=opt_seed,
-                        neuron_stream_wrapper=neuron_stream_wrapper,
+                        neuron_stream=neuron_stream,
+                        joint_types=sim_joint_types,
                         task_args=task_args)
     
     paths = optimizer.do_rollouts(opt_seed)
@@ -146,13 +155,13 @@ def simulate(robot, task, opt_seed, task_args, neuron_stream_wrapper=None):
             main_sim.step()
             
             neuron_input = None
-            if optimizer.neuron_stream_wrapper is not None:
+            if optimizer.neuron_stream is not None:
                 neuron_input = optimizer.neuron_stream_full[j]
-            rewards[j * task.interval + k] = objective_fn(main_sim, neuron_input, print_bool=False)
+            rewards[j * task.interval + k] = objective_fn(main_sim)
             
     main_sim.restore_state()
     
-    if optimizer.neuron_stream_wrapper is not None:
+    if optimizer.neuron_stream is not None:
         optimizer.neuron_stream_wrapper.stop()
         
     os.system("rm tmp.bullet")

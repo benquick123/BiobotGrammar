@@ -47,7 +47,7 @@ if __name__ == "__main__":
     # NOTE: 2s in the rule sequence seems to indicative of the number of legs. make sure there are always three.
     sim_joint_types = np.zeros(dof_count)
     main_env.get_joint_types(0, sim_joint_types)
-    print(sim_joint_types)
+    # print(sim_joint_types)
     
     if experiment_config["optimize"]:
         optimizer = MPPI(env, experiment_config["horizon"], n_samples, 

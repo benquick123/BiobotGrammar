@@ -17,12 +17,10 @@ class ForwardSpeedTask(ABC):
     self.force_std = force_std
     self.torque_std = torque_std
 
-    self.objective_fn = DotProductObjective()
+    self.objective_fn = rd.DotProductObjective()
     self.objective_fn.base_dir_weight = np.array([-2.0, 0.0, 0.0])
     self.objective_fn.base_up_weight = np.array([0.0, 2.0, 0.0])
     self.objective_fn.base_vel_weight = np.array([2.0, 0.0, 0.0])
-    self.objective_fn.power_weight = 0
-    self.objective_fn.dof_mismatch_cost = 0.1
 
     # Maximum reasonable result (designs achieving higher results are rejected)
     self.result_bound = 10.0
@@ -53,8 +51,7 @@ class FlatTerrainTask(ForwardSpeedTask):
     self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [40.0, 1.0, 10.0])
 
   def add_terrain(self, sim):
-    sim.add_prop(self.floor, [0.0, -1.0, 0.0],
-                 rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
+    sim.add_prop(self.floor, [0.0, -1.0, 0.0], rd.Quaterniond(1.0, 0.0, 0.0, 0.0))
     
     
 class ConstrainedTerrainTask(ForwardSpeedTask):
@@ -65,6 +62,14 @@ class ConstrainedTerrainTask(ForwardSpeedTask):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        
+        self.objective_fn = DotProductObjective()
+        self.objective_fn.base_dir_weight = np.array([-2.0, 0.0, 0.0])
+        self.objective_fn.base_up_weight = np.array([0.0, 2.0, 0.0])
+        self.objective_fn.base_vel_weight = np.array([2.0, 0.0, 0.0])
+        self.objective_fn.power_weight = 0
+        self.objective_fn.dof_mismatch_cost = 0.1
+        
         self.floor = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [1.6, 1.0, 0.9])
         self.wall0 = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [1.6, 0.25, 0.02])
         self.wall1 = rd.Prop(rd.PropShape.BOX, 0.0, 0.5, [1.6, 0.25, 0.02])
