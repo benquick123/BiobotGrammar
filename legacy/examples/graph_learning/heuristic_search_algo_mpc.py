@@ -343,7 +343,7 @@ def search_algo(args):
             
             for _ in range(args.num_eval):
                 _, rew = env.get_reward(selected_design, selected_rule_seq)
-                rew -= 5 * (np.sum([rule == 2 for rule in selected_rule_seq]) == 3)
+                # rew -= 0.5 * (np.sum([rule == 2 for rule in selected_rule_seq]) == 3)
                 if rew > reward:
                     reward, best_seed = rew, env.last_opt_seed
 

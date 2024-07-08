@@ -1,14 +1,19 @@
+import sys
+import os
+base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../')
+sys.path.append(base_dir)
+sys.path.append(os.path.join(base_dir, 'graph_learning'))
+sys.path.append(os.path.join(base_dir, 'design_search'))
+
 import argparse
 from design_search import RobotDesignEnv, make_graph, build_normalized_robot, presimulate, simulate
 import mcts
 from neurons import NeuronStreamWrapper
 import numpy as np
-import os
 import pyrobotdesign as rd
 import random
 import tasks
 import time
-
 
 class CameraTracker(object):
     def __init__(self, viewer, sim, robot_idx):
@@ -188,7 +193,7 @@ def main():
     # neuron_stream_wrapper.start()
     neuron_stream_wrapper = None
     if args.optim:
-        input_sequence, result = simulate(robot, task, opt_seed, args, neuron_stream_wrapper=neuron_stream_wrapper)
+        input_sequence, result = simulate(robot, task, opt_seed, args, neuron_stream=None)
         print("Result:", result)
     else:
         input_sequence = None
