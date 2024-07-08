@@ -77,7 +77,7 @@ class DotProductObjective:
         reward += base_vel[-3:].dot(base_vel_weight)
         # reward += base_vel[-3:].dot(self.base_vel_weight)
         
-        # maximization (?) of used power:ž
+        # maximization (?) of used power:
         if dof_count > 0:
             joint_vel = np.zeros(dof_count, dtype=np.float64)
             sim.get_joint_velocities(robot_idx, joint_vel)
